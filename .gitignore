@@ -1,2 +1,6 @@
 tmp
 obs-dev
+.deps
+/build_*
+/rundir
+cmake/.CMakeBuildNumber
