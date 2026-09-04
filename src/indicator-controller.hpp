@@ -14,8 +14,12 @@ enum class IndicatorKind {
 
 struct IndicatorEntry {
 	IndicatorKind kind;
+	bool muted = false;
 
-	bool operator==(const IndicatorEntry &other) const { return kind == other.kind; }
+	bool operator==(const IndicatorEntry &other) const
+	{
+		return kind == other.kind && muted == other.muted;
+	}
 	bool operator!=(const IndicatorEntry &other) const { return !(*this == other); }
 };
 

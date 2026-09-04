@@ -8,6 +8,12 @@ void assert_kind(const IndicatorLayout &layout, std::size_t index, IndicatorKind
 	assert(index < layout.entries.size());
 	assert(layout.entries[index].kind == expected);
 }
+
+void assert_muted(const IndicatorLayout &layout, std::size_t index, bool expected)
+{
+	assert(index < layout.entries.size());
+	assert(layout.entries[index].muted == expected);
+}
 }
 
 int main()
@@ -33,7 +39,13 @@ int main()
 	assert_kind(layout, 0, IndicatorKind::Paused);
 	assert_kind(layout, 1, IndicatorKind::ReplayBuffer);
 	assert_kind(layout, 2, IndicatorKind::Microphone);
+	assert_muted(layout, 2, false);
 	assert_kind(layout, 3, IndicatorKind::Saving);
+
+	state.microphoneMuted = true;
+	layout = IndicatorController::build_layout(state);
+	assert_kind(layout, 2, IndicatorKind::Microphone);
+	assert_muted(layout, 2, true);
 
 	state.recordingPaused = false;
 	state.recording = false;

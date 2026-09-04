@@ -14,7 +14,7 @@ IndicatorLayout IndicatorController::build_layout(const IndicatorState &state)
 		layout.entries.push_back({IndicatorKind::ReplayBuffer});
 
 	if (state.microphoneAvailable)
-		layout.entries.push_back({IndicatorKind::Microphone});
+		layout.entries.push_back({IndicatorKind::Microphone, state.microphoneMuted});
 
 	if (state.saving)
 		layout.entries.push_back({IndicatorKind::Saving});
