@@ -21,6 +21,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE src)
 
 find_package(libobs REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE user32 gdi32)
 
 if(ENABLE_FRONTEND_API)
   find_package(obs-frontend-api REQUIRED)
@@ -37,6 +38,7 @@ target_sources(
   PRIVATE
     src/obs-state-provider.cpp
     src/plugin-main.cpp
+    src/windows-overlay-renderer.cpp
 )
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
