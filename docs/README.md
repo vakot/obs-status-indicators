@@ -41,4 +41,6 @@ The qualification is important: `SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMC
 
 ## Current repository state
 
-The repository is an initial-commit skeleton. No plugin source or build system exists yet, so this branch documents the development/investigation plan rather than claiming a built implementation. The existing untracked `.gitignore` was pre-existing and is intentionally not part of this work.
+The repository now contains the Phase 1 native plugin skeleton and its reproducible Windows build setup. Later phases still need to implement the state provider, overlay, controller, and capture/stability evidence.
+
+Phase 1 implementation evidence is recorded in [08-phase-1-native-plugin.md](08-phase-1-native-plugin.md).
