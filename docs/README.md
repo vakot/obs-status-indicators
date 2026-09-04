@@ -41,7 +41,7 @@ The qualification is important: `SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMC
 
 ## Current repository state
 
-The repository now contains the Phase 1 native plugin skeleton and its reproducible Windows build setup. Later phases still need to implement the state provider, overlay, controller, and capture/stability evidence.
+Phases 1-6 are implemented or experimentally resolved on merged master, with the remaining work focused on stability, packaging, and the final reproducible local test flow.
 
 Phase 1 implementation evidence is recorded in [08-phase-1-native-plugin.md](08-phase-1-native-plugin.md).
 
@@ -52,3 +52,5 @@ Phase 3 implementation evidence is recorded in [10-phase-3-win32-overlay.md](10-
 Phase 4 implementation evidence is recorded in [11-phase-4-indicator-controller.md](11-phase-4-indicator-controller.md).
 
 Phase 5 implementation evidence is recorded in [12-phase-5-microphone-saving.md](12-phase-5-microphone-saving.md).
+
+Phase 6 capture evidence is recorded in [13-phase-6-capture-matrix.md](13-phase-6-capture-matrix.md).
