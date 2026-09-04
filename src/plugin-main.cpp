@@ -4,6 +4,7 @@
 #include <new>
 
 #include <obs-state-provider.hpp>
+#include <indicator-controller.hpp>
 #include <plugin-support.h>
 #include <windows-overlay-renderer.hpp>
 
@@ -19,6 +20,9 @@ static void state_changed(const IndicatorState &state, void *context)
 
 	obs_log(LOG_INFO, "state snapshot: recording=%d paused=%d replay=%d", state.recording,
 		state.recordingPaused, state.replayBuffer);
+	const IndicatorLayout layout = IndicatorController::build_layout(state);
+	if (overlay_renderer)
+		overlay_renderer->update_layout(layout);
 }
 
 bool obs_module_load(void)
@@ -42,6 +46,8 @@ bool obs_module_load(void)
 		delete overlay_renderer;
 		overlay_renderer = nullptr;
 	}
+	if (overlay_renderer)
+		overlay_renderer->update_layout(IndicatorController::build_layout(state_provider->state()));
 
 	obs_log(LOG_INFO, "plugin loaded; state provider started");
 	return true;

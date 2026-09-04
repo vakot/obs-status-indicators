@@ -1,5 +1,7 @@
 #pragma once
 
+#include "indicator-controller.hpp"
+
 #include <windows.h>
 
 #include <condition_variable>
@@ -16,18 +18,21 @@ public:
 
 	bool start();
 	void stop();
+	void update_layout(const IndicatorLayout &layout);
 
 private:
 	static constexpr int kWidth = 176;
-	static constexpr int kHeight = 48;
+	static constexpr int kRowHeight = 32;
 	static constexpr int kMargin = 8;
+	static constexpr UINT kUpdateLayoutMessage = WM_APP + 1;
 
 	static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 
 	void run();
 	bool create_window();
 	void destroy_window();
-	bool render_marker();
+	bool render_layout(const IndicatorLayout &layout);
+	void apply_pending_layout();
 	void signal_initialized(bool success);
 
 	std::thread thread_;
@@ -37,4 +42,5 @@ private:
 	bool initialized_success_ = false;
 	DWORD thread_id_ = 0;
 	HWND window_ = nullptr;
+	IndicatorLayout pending_layout_;
 };

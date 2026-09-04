@@ -36,10 +36,19 @@ endif()
 target_sources(
   ${CMAKE_PROJECT_NAME}
   PRIVATE
+	src/indicator-controller.cpp
     src/obs-state-provider.cpp
     src/plugin-main.cpp
     src/windows-overlay-renderer.cpp
 )
+
+include(CTest)
+if(BUILD_TESTING)
+	add_executable(obs-status-indicators-controller-test tests/indicator-controller-test.cpp
+		src/indicator-controller.cpp)
+	target_include_directories(obs-status-indicators-controller-test PRIVATE src)
+	add_test(NAME indicator-controller COMMAND obs-status-indicators-controller-test)
+endif()
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
 
