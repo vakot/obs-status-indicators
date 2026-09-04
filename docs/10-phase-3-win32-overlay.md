@@ -1,0 +1,28 @@
+# Phase 3 - Win32 overlay foundation
+
+## Result
+
+Phase 3 is **possible**. The plugin now owns a dedicated Win32 UI thread and a borderless topmost popup that renders a hardcoded `OBS STATUS` marker through a 32-bit DIB and `UpdateLayeredWindow`.
+
+## Window contract
+
+The overlay uses `WS_POPUP` with `WS_EX_LAYERED`, `WS_EX_TRANSPARENT`, `WS_EX_NOACTIVATE`, and `WS_EX_TOOLWINDOW`. It reports `HTTRANSPARENT` for `WM_NCHITTEST` and `MA_NOACTIVATE` for `WM_MOUSEACTIVATE`, so it has no intended input/focus ownership. `SetWindowPos(HWND_TOPMOST, ..., SWP_NOACTIVATE | SWP_SHOWWINDOW)` places the 176x48 logical-pixel marker 8 pixels from the primary display's bottom-right corner.
+
+All window creation, painting, positioning, and destruction happen on the overlay thread. The plugin unload order destroys the overlay before destroying the OBS state provider.
+
+## Rendering and capture evidence
+
+The marker is rendered into an opaque premultiplied-alpha-compatible 32-bit DIB using GDI text and published with `UpdateLayeredWindow`. OBS 32.2.1 logged:
+
+- `capture exclusion enabled for overlay`.
+- `overlay window ready at primary-display bottom-right`.
+
+Window inspection during the run found the visible `OBSStatusIndicatorsOverlay` at the primary-display bottom-right and returned `HTTRANSPARENT`. The desktop screenshot did not contain the marker while the foreground game was displayed; this is consistent with the active `WDA_EXCLUDEFROMCAPTURE` behavior and is evidence that the capture API excluded the overlay from that screenshot. It is not evidence that every capture path or exclusive-fullscreen compositor will exclude it.
+
+## Runtime limitation
+
+The test monitor is scaled, so physical `GetWindowRect` coordinates report a scaled size while the renderer uses logical dimensions. DPI awareness and final visual sizing should be revisited when the controller/layout phase introduces the real indicator rows. The current implementation intentionally has no settings or monitor-selection logic.
+
+## Shutdown evidence
+
+The renderer's `stop()` posts `WM_QUIT` to the UI thread and joins it; the UI thread destroys its HWND and unregisters its class. The supplied fixture's tray configuration prevented a clean OBS process exit in the automated harness, so the process was cleaned up as one exact test process after the window-style/affinity assertions. A user-driven clean-exit test remains part of Phase 7.

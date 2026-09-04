@@ -46,3 +46,5 @@ The repository now contains the Phase 1 native plugin skeleton and its reproduci
 Phase 1 implementation evidence is recorded in [08-phase-1-native-plugin.md](08-phase-1-native-plugin.md).
 
 Phase 2 implementation evidence is recorded in [09-phase-2-state-provider.md](09-phase-2-state-provider.md).
+
+Phase 3 implementation evidence is recorded in [10-phase-3-win32-overlay.md](10-phase-3-win32-overlay.md).

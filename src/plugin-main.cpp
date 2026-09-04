@@ -5,11 +5,13 @@
 
 #include <obs-state-provider.hpp>
 #include <plugin-support.h>
+#include <windows-overlay-renderer.hpp>
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
 static ObsStateProvider *state_provider = nullptr;
+static WindowsOverlayRenderer *overlay_renderer = nullptr;
 
 static void state_changed(const IndicatorState &state, void *context)
 {
@@ -34,12 +36,21 @@ bool obs_module_load(void)
 		return false;
 	}
 
+	overlay_renderer = new (std::nothrow) WindowsOverlayRenderer();
+	if (!overlay_renderer || !overlay_renderer->start()) {
+		obs_log(LOG_WARNING, "overlay startup failed; continuing without overlay");
+		delete overlay_renderer;
+		overlay_renderer = nullptr;
+	}
+
 	obs_log(LOG_INFO, "plugin loaded; state provider started");
 	return true;
 }
 
 void obs_module_unload(void)
 {
+	delete overlay_renderer;
+	overlay_renderer = nullptr;
 	delete state_provider;
 	state_provider = nullptr;
 	obs_log(LOG_INFO, "plugin unloaded; state provider destroyed");
