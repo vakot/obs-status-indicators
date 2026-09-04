@@ -44,3 +44,5 @@ The qualification is important: `SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMC
 The repository now contains the Phase 1 native plugin skeleton and its reproducible Windows build setup. Later phases still need to implement the state provider, overlay, controller, and capture/stability evidence.
 
 Phase 1 implementation evidence is recorded in [08-phase-1-native-plugin.md](08-phase-1-native-plugin.md).
+
+Phase 2 implementation evidence is recorded in [09-phase-2-state-provider.md](09-phase-2-state-provider.md).

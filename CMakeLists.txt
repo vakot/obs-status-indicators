@@ -17,6 +17,7 @@ if(OBS_DEV_DIR AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 
 add_library(${CMAKE_PROJECT_NAME} MODULE)
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE src)
 
 find_package(libobs REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
@@ -31,7 +32,12 @@ if(ENABLE_QT)
   target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Qt6::Core Qt6::Widgets)
 endif()
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c)
+target_sources(
+  ${CMAKE_PROJECT_NAME}
+  PRIVATE
+    src/obs-state-provider.cpp
+    src/plugin-main.cpp
+)
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
 
@@ -43,6 +49,6 @@ if(OBS_DEV_DIR)
   )
   install(
     DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/data/"
-    DESTINATION "${OBS_DEV_DIR}/data/${_name}"
+    DESTINATION "${OBS_DEV_DIR}/data/obs-plugins/${_name}"
   )
 endif()
