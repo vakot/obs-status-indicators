@@ -54,3 +54,7 @@ Phase 4 implementation evidence is recorded in [11-phase-4-indicator-controller.
 Phase 5 implementation evidence is recorded in [12-phase-5-microphone-saving.md](12-phase-5-microphone-saving.md).
 
 Phase 6 capture evidence is recorded in [13-phase-6-capture-matrix.md](13-phase-6-capture-matrix.md).
+
+Phase 7 release-readiness evidence is recorded in [14-phase-7-stability-packaging.md](14-phase-7-stability-packaging.md).
+
+The complete reproducible operator flow is recorded in [15-local-test-flow.md](15-local-test-flow.md).
