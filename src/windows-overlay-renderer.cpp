@@ -200,6 +200,13 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
 	const auto background = static_cast<std::uint32_t>(0xFF20252B);
 	std::fill_n(static_cast<std::uint32_t *>(pixels), width * height, background);
 	const HGDIOBJ previous_bitmap = SelectObject(memory_dc, bitmap);
+	for (int index = 0; index < row_count; ++index) {
+		if (layout.entries[index].muted) {
+			const auto muted_background = static_cast<std::uint32_t>(0xFFC04040);
+			std::fill_n(static_cast<std::uint32_t *>(pixels) + index * width * kRowHeight,
+				width * kRowHeight, muted_background);
+		}
+	}
 
 	SetBkMode(memory_dc, TRANSPARENT);
 	SetTextColor(memory_dc, RGB(255, 255, 255));

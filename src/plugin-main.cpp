@@ -18,8 +18,9 @@ static void state_changed(const IndicatorState &state, void *context)
 {
 	UNUSED_PARAMETER(context);
 
-	obs_log(LOG_INFO, "state snapshot: recording=%d paused=%d replay=%d", state.recording,
-		state.recordingPaused, state.replayBuffer);
+	obs_log(LOG_INFO, "state snapshot: recording=%d paused=%d replay=%d mic=%d muted=%d saving=%d",
+		state.recording, state.recordingPaused, state.replayBuffer, state.microphoneAvailable,
+		state.microphoneMuted, state.saving);
 	const IndicatorLayout layout = IndicatorController::build_layout(state);
 	if (overlay_renderer)
 		overlay_renderer->update_layout(layout);
