@@ -41,7 +41,7 @@ The qualification is important: `SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMC
 
 ## Current repository state
 
-Phases 1-6 are implemented or experimentally resolved on merged master, with the remaining work focused on stability, packaging, and the final reproducible local test flow.
+Phases 0-7 are implemented or experimentally resolved on merged master. The plan is complete for the documented native Windows MVP scope; remaining work is limited to future product expansion or broader hardware/capture coverage.
 
 Phase 1 implementation evidence is recorded in [08-phase-1-native-plugin.md](08-phase-1-native-plugin.md).
 
