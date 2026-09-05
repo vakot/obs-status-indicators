@@ -17,7 +17,7 @@ namespace {
 constexpr wchar_t kWindowClassName[] = L"OBSStatusIndicatorsOverlay";
 std::atomic<WindowsOverlayRenderer *> event_hook_renderer = nullptr;
 constexpr int kIconPadding = 8;
-constexpr BYTE kIndicatorOpacity = 204;
+constexpr BYTE kIndicatorOpacity = 128;
 const char *icon_file_for(const IndicatorEntry &entry)
 {
 	switch (entry.kind) {
