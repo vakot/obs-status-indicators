@@ -113,7 +113,7 @@ The overlay is anchored to the configured corner and spacing. Each active state 
 1. Start Recording. Expect the `circle-dot` indicator; pause recording and expect `PAUSED` to replace it; resume and stop.
 2. Start Replay Buffer. Expect the `refresh-ccw` indicator. Start Recording while Replay Buffer remains active and verify the two states collapse into one `refresh-ccw-dot` indicator. Stop Recording and verify the replay-only icon returns; use `Save Replay Buffer`, expect a bounded `SAVING` state after the save-completion event, then its expiry; stop Replay Buffer.
 3. Toggle the USB microphone mute control in the Audio Mixer. Expect `MIC` to remain present and carry the muted presentation; unmute and verify the red muted presentation clears.
-4. Leave the USB microphone silent for at least two seconds. Expect the existing muted microphone presentation; make an audible test sound and verify the normal microphone presentation returns. A steady noise floor at or below `-60 dBFS` is treated as silence.
+4. Leave the USB microphone silent for at least ten seconds. Expect the existing muted microphone presentation; make an audible test sound and verify the normal microphone presentation returns. A steady noise floor at or below `-60 dBFS` is treated as silence.
 5. Switch between `Gameplay Test` and `Camera Test`. The unavailable camera must not remove the other state indicators or crash the plugin.
 
 ## 8. Capture exclusion experiment

@@ -22,7 +22,7 @@ Primary references:
 - Scan every channel reported by the volume meter. Activity on any channel counts as microphone activity.
 - Treat an input peak strictly above `-60 dBFS` as audible. The exact threshold is intentional: values at or below the threshold are treated as silence.
 - Keep the indicator active while the source is being initialized, so a newly resolved microphone does not flash muted before its first meter window.
-- After 2.0 seconds without an audible sample, set the existing `microphoneMuted` state and reuse the existing muted presentation (`mic-off` / red tile).
+- After 10.0 seconds without an audible sample, set the existing `microphoneMuted` state and reuse the existing muted presentation (`mic-off` / red tile).
 - Restore the normal microphone presentation on the next OBS tick after an audible sample is observed.
 - Preserve explicit OBS source mute behavior: a source muted in the mixer is immediately presented as muted regardless of audio activity.
 - If OBS cannot create or attach the volume meter, retain the existing source-availability and explicit-mute behavior and log a warning instead of disabling the plugin.
@@ -42,7 +42,7 @@ Automated policy coverage is in `tests/microphone-activity-test.cpp` and is incl
 1. Build and run `RUN_TESTS`.
 2. Install into the standalone `obs-dev` folder while OBS is stopped.
 3. Start exactly one instance with `scripts/start.ps1`.
-4. Leave the configured microphone silent for at least two seconds and inspect the latest plugin log for a state snapshot with `mic=1 muted=1`.
+4. Leave the configured microphone silent for at least ten seconds and inspect the latest plugin log for a state snapshot with `mic=1 muted=1`.
 5. Speak into the microphone or make a clearly audible test sound and verify the normal microphone presentation returns.
 6. Toggle the mixer mute control and verify the indicator remains muted even while audio is present.
 7. Stop OBS before any rebuild or reinstall and verify that no `obs64` process remains.

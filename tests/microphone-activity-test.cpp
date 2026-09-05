@@ -6,7 +6,7 @@ int main()
 {
 	MicrophoneActivity activity;
 	assert(activity.active());
-	assert(!activity.tick(1.9f));
+	assert(!activity.tick(9.9f));
 	assert(activity.active());
 	assert(activity.tick(0.1f));
 	assert(!activity.active());

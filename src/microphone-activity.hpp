@@ -5,7 +5,7 @@
 
 class MicrophoneActivity {
 public:
-	static constexpr float kSilenceTimeoutSeconds = 2.0f;
+	static constexpr float kSilenceTimeoutSeconds = 10.0f;
 	static constexpr float kAudibleThresholdDb = -60.0f;
 
 	void reset()
