@@ -5,7 +5,7 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/bootstrap.cmake" NO_POLICY_SCO
 project(${_name} VERSION ${_version})
 
 option(ENABLE_FRONTEND_API "Use obs-frontend-api for OBS frontend events" ON)
-option(ENABLE_QT "Use Qt functionality" OFF)
+option(ENABLE_QT "Use Qt functionality" ON)
 set(OBS_DEV_DIR "" CACHE PATH "Portable OBS directory used by the local install target")
 
 include(compilerconfig)
@@ -29,8 +29,8 @@ if(ENABLE_FRONTEND_API)
 endif()
 
 if(ENABLE_QT)
-  find_package(Qt6 COMPONENTS Widgets Core)
-  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Qt6::Core Qt6::Widgets)
+  find_package(Qt6 COMPONENTS Core Gui Svg REQUIRED)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Svg)
 endif()
 
 target_sources(

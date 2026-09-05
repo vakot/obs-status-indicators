@@ -1,6 +1,7 @@
 tmp
 obs-dev
 .deps
+/node_modules
 /build_*
 /rundir
 cmake/.CMakeBuildNumber

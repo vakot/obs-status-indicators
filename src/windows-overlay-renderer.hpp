@@ -22,9 +22,8 @@ public:
 	void update_layout(const IndicatorLayout &layout);
 
 private:
-	static constexpr int kWidth = 176;
-	static constexpr int kRowHeight = 32;
-	static constexpr int kMargin = 8;
+	static constexpr int kIndicatorSize = 48;
+	static constexpr int kIndicatorGap = 8;
 	static constexpr UINT kUpdateLayoutMessage = WM_APP + 1;
 	static constexpr UINT kReassertTopmostMessage = WM_APP + 2;
 

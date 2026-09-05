@@ -5,28 +5,58 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <cstring>
+
+#include <QImage>
+#include <QPainter>
+#include <QSvgRenderer>
 
 #include <plugin-support.h>
 
 namespace {
 constexpr wchar_t kWindowClassName[] = L"OBSStatusIndicatorsOverlay";
 std::atomic<WindowsOverlayRenderer *> event_hook_renderer = nullptr;
-
-const wchar_t *label_for(IndicatorKind kind)
+constexpr int kIconPadding = 8;
+constexpr BYTE kIndicatorOpacity = 128;
+const char *icon_file_for(const IndicatorEntry &entry)
 {
-	switch (kind) {
+	switch (entry.kind) {
 	case IndicatorKind::Paused:
-		return L"PAUSED";
+		return "icons/lucide/pause.svg";
 	case IndicatorKind::Recording:
-		return L"REC";
+		return "icons/lucide/circle-dot.svg";
 	case IndicatorKind::ReplayBuffer:
-		return L"REPLAY";
+		return "icons/lucide/repeat-2.svg";
 	case IndicatorKind::Microphone:
-		return L"MIC";
+		return entry.muted ? "icons/lucide/mic-off.svg" : "icons/lucide/mic.svg";
 	case IndicatorKind::Saving:
-		return L"SAVING";
+		return "icons/lucide/save.svg";
 	}
-	return L"";
+	return nullptr;
+}
+
+bool render_lucide_icon(QImage &tile, const IndicatorEntry &entry)
+{
+	const char *relative_path = icon_file_for(entry);
+	char *icon_path = obs_module_file(relative_path);
+	if (!icon_path) {
+		obs_log(LOG_WARNING, "indicator icon path unavailable: %s", relative_path);
+		return false;
+	}
+
+	const QString path = QString::fromUtf8(icon_path);
+	bfree(icon_path);
+	QSvgRenderer renderer(path);
+	if (!renderer.isValid()) {
+		obs_log(LOG_WARNING, "indicator icon load failed: %s", relative_path);
+		return false;
+	}
+
+	QPainter painter(&tile);
+	renderer.render(&painter,
+		QRectF(kIconPadding, kIconPadding, tile.width() - 2 * kIconPadding,
+			tile.height() - 2 * kIconPadding));
+	return true;
 }
 }
 
@@ -127,7 +157,7 @@ bool WindowsOverlayRenderer::create_window()
 	}
 
 	window_ = CreateWindowExW(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
-		kWindowClassName, L"OBS Status Indicators", WS_POPUP, 0, 0, kWidth, kRowHeight, nullptr,
+		kWindowClassName, L"OBS Status Indicators", WS_POPUP, 0, 0, kIndicatorSize, kIndicatorSize, nullptr,
 		nullptr, instance, this);
 	if (!window_) {
 		obs_log(LOG_ERROR, "overlay window creation failed: %lu", GetLastError());
@@ -150,13 +180,9 @@ bool WindowsOverlayRenderer::create_window()
 	if (!install_z_order_hooks())
 		obs_log(LOG_WARNING, "topmost order recovery hooks unavailable; overlay remains best effort");
 
-	const int screen_width = GetSystemMetrics(SM_CXSCREEN);
-	const int screen_height = GetSystemMetrics(SM_CYSCREEN);
-	const int x = screen_width - kWidth - kMargin > 0 ? screen_width - kWidth - kMargin : 0;
-	const int y = screen_height - kRowHeight - kMargin > 0 ? screen_height - kRowHeight - kMargin : 0;
-	SetWindowPos(window_, HWND_TOPMOST, x, y, kWidth,
-		kRowHeight, SWP_NOACTIVATE | SWP_HIDEWINDOW);
-	obs_log(LOG_INFO, "overlay window ready at primary-display bottom-right");
+	SetWindowPos(window_, HWND_TOPMOST, 0, 0, kIndicatorSize,
+		kIndicatorSize, SWP_NOACTIVATE | SWP_HIDEWINDOW);
+	obs_log(LOG_INFO, "overlay window ready at primary-display top-left");
 	return true;
 }
 
@@ -210,8 +236,9 @@ void WindowsOverlayRenderer::uninstall_z_order_hooks()
 bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
 {
 	const int row_count = static_cast<int>(layout.entries.size());
-	const int height = row_count > 0 ? row_count * kRowHeight : kRowHeight;
-	const int width = kWidth;
+	const int height = row_count > 0 ? row_count * kIndicatorSize + (row_count - 1) * kIndicatorGap
+						 : kIndicatorSize;
+	const int width = kIndicatorSize;
 	HDC screen_dc = GetDC(nullptr);
 	HDC memory_dc = CreateCompatibleDC(screen_dc);
 	if (!screen_dc || !memory_dc) {
@@ -242,30 +269,17 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
 		return false;
 	}
 
-	const auto background = static_cast<std::uint32_t>(0xFF20252B);
+	const auto background = static_cast<std::uint32_t>(0x00000000);
 	std::fill_n(static_cast<std::uint32_t *>(pixels), width * height, background);
 	const HGDIOBJ previous_bitmap = SelectObject(memory_dc, bitmap);
 	for (int index = 0; index < row_count; ++index) {
-		if (layout.entries[index].muted) {
-			const auto muted_background = static_cast<std::uint32_t>(0xFFC04040);
-			std::fill_n(static_cast<std::uint32_t *>(pixels) + index * width * kRowHeight,
-				width * kRowHeight, muted_background);
-		}
-	}
-
-	SetBkMode(memory_dc, TRANSPARENT);
-	SetTextColor(memory_dc, RGB(255, 255, 255));
-	HFONT font = CreateFontW(18, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
-		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
-	if (font) {
-		const HGDIOBJ previous_font = SelectObject(memory_dc, font);
-		for (int index = 0; index < row_count; ++index) {
-			RECT text_rect = {16, index * kRowHeight, width - 8, (index + 1) * kRowHeight};
-			DrawTextW(memory_dc, label_for(layout.entries[index].kind), -1, &text_rect,
-				DT_SINGLELINE | DT_VCENTER);
-		}
-		SelectObject(memory_dc, previous_font);
-		DeleteObject(font);
+		const int top = index * (kIndicatorSize + kIndicatorGap);
+		QImage tile(kIndicatorSize, kIndicatorSize, QImage::Format_ARGB32_Premultiplied);
+		tile.fill(Qt::black);
+		render_lucide_icon(tile, layout.entries[index]);
+		std::memcpy(static_cast<std::uint8_t *>(pixels) +
+				static_cast<size_t>(top) * width * sizeof(std::uint32_t), tile.constBits(),
+				static_cast<size_t>(tile.bytesPerLine()) * tile.height());
 	}
 
 	POINT destination = {};
@@ -275,7 +289,7 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
 	destination.y = window_rect.top;
 	SIZE size = {width, height};
 	POINT source = {0, 0};
-	BLENDFUNCTION blend = {AC_SRC_OVER, 0, 255, AC_SRC_ALPHA};
+	BLENDFUNCTION blend = {AC_SRC_OVER, 0, kIndicatorOpacity, AC_SRC_ALPHA};
 	const BOOL updated = UpdateLayeredWindow(window_, screen_dc, &destination, &size, memory_dc,
 		&source, 0, &blend, ULW_ALPHA);
 
@@ -289,11 +303,7 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
 		return false;
 	}
 
-	const int screen_width = GetSystemMetrics(SM_CXSCREEN);
-	const int screen_height = GetSystemMetrics(SM_CYSCREEN);
-	const int x = screen_width - width - kMargin > 0 ? screen_width - width - kMargin : 0;
-	const int y = screen_height - height - kMargin > 0 ? screen_height - height - kMargin : 0;
-	SetWindowPos(window_, HWND_TOPMOST, x, y, width, height, SWP_NOACTIVATE);
+	SetWindowPos(window_, HWND_TOPMOST, 0, 0, width, height, SWP_NOACTIVATE);
 	ShowWindow(window_, row_count > 0 ? SW_SHOWNOACTIVATE : SW_HIDE);
 	return true;
 }
