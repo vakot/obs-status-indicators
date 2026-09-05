@@ -179,11 +179,9 @@ bool WindowsOverlayRenderer::create_window()
 	if (!install_z_order_hooks())
 		obs_log(LOG_WARNING, "topmost order recovery hooks unavailable; overlay remains best effort");
 
-	const int screen_height = GetSystemMetrics(SM_CYSCREEN);
-	const int y = screen_height - kIndicatorSize - kMargin > 0 ? screen_height - kIndicatorSize - kMargin : 0;
-	SetWindowPos(window_, HWND_TOPMOST, kMargin, y, kIndicatorSize,
+	SetWindowPos(window_, HWND_TOPMOST, 0, 0, kIndicatorSize,
 		kIndicatorSize, SWP_NOACTIVATE | SWP_HIDEWINDOW);
-	obs_log(LOG_INFO, "overlay window ready at primary-display bottom-left");
+	obs_log(LOG_INFO, "overlay window ready at primary-display top-left");
 	return true;
 }
 
@@ -304,9 +302,7 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
 		return false;
 	}
 
-	const int screen_height = GetSystemMetrics(SM_CYSCREEN);
-	const int y = screen_height - height - kMargin > 0 ? screen_height - height - kMargin : 0;
-	SetWindowPos(window_, HWND_TOPMOST, kMargin, y, width, height, SWP_NOACTIVATE);
+	SetWindowPos(window_, HWND_TOPMOST, 0, 0, width, height, SWP_NOACTIVATE);
 	ShowWindow(window_, row_count > 0 ? SW_SHOWNOACTIVATE : SW_HIDE);
 	return true;
 }
