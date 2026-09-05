@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstring>
 
+#include <QColor>
 #include <QImage>
 #include <QPainter>
 #include <QSvgRenderer>
@@ -17,6 +18,7 @@ namespace {
 constexpr wchar_t kWindowClassName[] = L"OBSStatusIndicatorsOverlay";
 std::atomic<WindowsOverlayRenderer *> event_hook_renderer = nullptr;
 constexpr int kIconPadding = 8;
+constexpr int kIndicatorOpacity = 204;
 const char *icon_file_for(const IndicatorEntry &entry)
 {
 	switch (entry.kind) {
@@ -268,13 +270,13 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
 		return false;
 	}
 
-	const auto background = static_cast<std::uint32_t>(0xFF000000);
+	const auto background = static_cast<std::uint32_t>(0x00000000);
 	std::fill_n(static_cast<std::uint32_t *>(pixels), width * height, background);
 	const HGDIOBJ previous_bitmap = SelectObject(memory_dc, bitmap);
 	for (int index = 0; index < row_count; ++index) {
 		const int top = index * (kIndicatorSize + kIndicatorGap);
 		QImage tile(kIndicatorSize, kIndicatorSize, QImage::Format_ARGB32_Premultiplied);
-		tile.fill(Qt::black);
+		tile.fill(QColor(0, 0, 0, kIndicatorOpacity));
 		render_lucide_icon(tile, layout.entries[index]);
 		std::memcpy(static_cast<std::uint8_t *>(pixels) +
 				static_cast<size_t>(top) * width * sizeof(std::uint32_t), tile.constBits(),

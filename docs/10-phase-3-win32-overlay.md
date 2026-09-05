@@ -6,7 +6,7 @@ Phase 3 is **possible**. The plugin owns a dedicated Win32 UI thread and a borde
 
 ## Window contract
 
-The overlay uses `WS_POPUP` with `WS_EX_LAYERED`, `WS_EX_TRANSPARENT`, `WS_EX_NOACTIVATE`, and `WS_EX_TOOLWINDOW`. It reports `HTTRANSPARENT` for `WM_NCHITTEST` and `MA_NOACTIVATE` for `WM_MOUSEACTIVATE`, so it has no intended input/focus ownership. Each active indicator is a 48x48 opaque black square with an 8-pixel icon inset; active squares are stacked vertically with an 8-pixel gap and positioned at the primary display's exact top-left origin `(0, 0)`.
+The overlay uses `WS_POPUP` with `WS_EX_LAYERED`, `WS_EX_TRANSPARENT`, `WS_EX_NOACTIVATE`, and `WS_EX_TOOLWINDOW`. It reports `HTTRANSPARENT` for `WM_NCHITTEST` and `MA_NOACTIVATE` for `WM_MOUSEACTIVATE`, so it has no intended input/focus ownership. Each active indicator is a 48x48 black square at 80% opacity with an 8-pixel icon inset; active squares are stacked vertically with an 8-pixel transparent gap and positioned at the primary display's exact top-left origin `(0, 0)`.
 
 `HWND_TOPMOST` places the window in the topmost band but does not permanently fix its order relative to other topmost windows. Start11 and similar tools can move their own topmost panel ahead after interaction. The renderer therefore registers out-of-context `SetWinEventHook` listeners for foreground and top-level show/hide/reorder events. These callbacks only coalesce and post a private message; the overlay UI thread then reasserts `SetWindowPos(HWND_TOPMOST, ..., SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)`. This is event-driven recovery with no periodic timer or 1-2 second polling loop. Hook registration is nonfatal so the overlay remains usable if the capability is unavailable.
 
@@ -14,7 +14,7 @@ All window creation, painting, positioning, and destruction happen on the overla
 
 ## Rendering and capture evidence
 
-The indicators are rendered into an opaque premultiplied-alpha-compatible 32-bit DIB using Lucide SVG assets through Qt6Svg and published with `UpdateLayeredWindow`. Recording, pause, Replay Buffer, microphone, and saving each have a distinct white glyph; muted microphone uses Lucide's `mic-off` glyph while retaining the black square. OBS 32.2.1 logged:
+The indicators are rendered into a premultiplied-alpha-compatible 32-bit DIB using Lucide SVG assets through Qt6Svg and published with `UpdateLayeredWindow`. Pixels outside the indicator squares are fully transparent, square backgrounds use 80% black alpha, and the Lucide glyphs remain fully white. Recording, pause, Replay Buffer, microphone, and saving each have a distinct glyph; muted microphone uses Lucide's `mic-off` glyph. OBS 32.2.1 logged:
 
 - `capture exclusion enabled for overlay`.
 - `overlay window ready at primary-display top-left`.
