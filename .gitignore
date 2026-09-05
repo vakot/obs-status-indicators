@@ -3,5 +3,6 @@ obs-dev
 .deps
 /node_modules
 /build_*
+/release/
 /rundir
 cmake/.CMakeBuildNumber

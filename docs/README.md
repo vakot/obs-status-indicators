@@ -58,3 +58,5 @@ Phase 6 capture evidence is recorded in [13-phase-6-capture-matrix.md](13-phase-
 Phase 7 release-readiness evidence is recorded in [14-phase-7-stability-packaging.md](14-phase-7-stability-packaging.md).
 
 The complete reproducible operator flow is recorded in [15-local-test-flow.md](15-local-test-flow.md).
+
+Build and installation instructions are recorded in [16-installation.md](16-installation.md).
