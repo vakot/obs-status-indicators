@@ -1,0 +1,10 @@
+{
+  "name": "obs-status-indicators",
+  "private": true,
+  "scripts": {
+    "sync-icons": "node scripts/sync-lucide-icons.mjs"
+  },
+  "devDependencies": {
+    "lucide-static": "1.41.0"
+  }
+}
