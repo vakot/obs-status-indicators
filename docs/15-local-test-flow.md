@@ -85,7 +85,7 @@ It should report `server_enabled: false`. For an API-driven experiment, stop OBS
 
 Perform these one at a time in the running standalone instance and correlate the visible overlay with the newest log snapshots:
 
-The overlay is anchored to the primary display's top-left origin `(0, 0)`. Each active state is a 48x48 black square at 80% opacity with an 8-pixel icon inset; multiple states stack downward with an 8-pixel transparent gap. Recording, pause, Replay Buffer, microphone, and saving use distinct Lucide action glyphs, and a muted microphone uses the Lucide `mic-off` glyph.
+The overlay is anchored to the primary display's top-left origin `(0, 0)`. Each active state is a 48x48 black square whose complete tile, including its Lucide icon, is composited at 80% opacity with an 8-pixel icon inset; multiple states stack downward with an 8-pixel transparent gap. Recording, pause, Replay Buffer, microphone, and saving use distinct Lucide action glyphs, and a muted microphone uses the Lucide `mic-off` glyph.
 
 1. Start Recording. Expect `REC`; pause recording and expect `PAUSED` to replace `REC`; resume and stop.
 2. Start Replay Buffer. Expect `REPLAY`; use `Save Replay Buffer`; expect a bounded `SAVING` state after the save-completion event, then its expiry; stop Replay Buffer.

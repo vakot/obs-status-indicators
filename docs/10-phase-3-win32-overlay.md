@@ -14,7 +14,7 @@ All window creation, painting, positioning, and destruction happen on the overla
 
 ## Rendering and capture evidence
 
-The indicators are rendered into a premultiplied-alpha-compatible 32-bit DIB using Lucide SVG assets through Qt6Svg and published with `UpdateLayeredWindow`. Pixels outside the indicator squares are fully transparent, square backgrounds use 80% black alpha, and the Lucide glyphs remain fully white. Recording, pause, Replay Buffer, microphone, and saving each have a distinct glyph; muted microphone uses Lucide's `mic-off` glyph. OBS 32.2.1 logged:
+The indicators are rendered into a premultiplied-alpha-compatible 32-bit DIB using Lucide SVG assets through Qt6Svg and published with `UpdateLayeredWindow`. Pixels outside the indicator squares are fully transparent; the `UpdateLayeredWindow` source alpha applies 80% opacity to each complete indicator tile, including both its black background and Lucide glyph. Recording, pause, Replay Buffer, microphone, and saving each have a distinct glyph; muted microphone uses Lucide's `mic-off` glyph. OBS 32.2.1 logged:
 
 - `capture exclusion enabled for overlay`.
 - `overlay window ready at primary-display top-left`.

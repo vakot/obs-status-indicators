@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <cstring>
 
-#include <QColor>
 #include <QImage>
 #include <QPainter>
 #include <QSvgRenderer>
@@ -18,7 +17,7 @@ namespace {
 constexpr wchar_t kWindowClassName[] = L"OBSStatusIndicatorsOverlay";
 std::atomic<WindowsOverlayRenderer *> event_hook_renderer = nullptr;
 constexpr int kIconPadding = 8;
-constexpr int kIndicatorOpacity = 204;
+constexpr BYTE kIndicatorOpacity = 204;
 const char *icon_file_for(const IndicatorEntry &entry)
 {
 	switch (entry.kind) {
@@ -276,7 +275,7 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
 	for (int index = 0; index < row_count; ++index) {
 		const int top = index * (kIndicatorSize + kIndicatorGap);
 		QImage tile(kIndicatorSize, kIndicatorSize, QImage::Format_ARGB32_Premultiplied);
-		tile.fill(QColor(0, 0, 0, kIndicatorOpacity));
+		tile.fill(Qt::black);
 		render_lucide_icon(tile, layout.entries[index]);
 		std::memcpy(static_cast<std::uint8_t *>(pixels) +
 				static_cast<size_t>(top) * width * sizeof(std::uint32_t), tile.constBits(),
@@ -290,7 +289,7 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
 	destination.y = window_rect.top;
 	SIZE size = {width, height};
 	POINT source = {0, 0};
-	BLENDFUNCTION blend = {AC_SRC_OVER, 0, 255, AC_SRC_ALPHA};
+	BLENDFUNCTION blend = {AC_SRC_OVER, 0, kIndicatorOpacity, AC_SRC_ALPHA};
 	const BOOL updated = UpdateLayeredWindow(window_, screen_dc, &destination, &size, memory_dc,
 		&source, 0, &blend, ULW_ALPHA);
 
