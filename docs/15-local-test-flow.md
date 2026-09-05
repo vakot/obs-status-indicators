@@ -2,26 +2,14 @@
 
 This is the reproducible end-to-end flow for the supplied portable OBS installation. It assumes PowerShell, Visual Studio Build Tools 2022, CMake, FFmpeg, and the repository paths shown below.
 
-## 1. Enter the repository and enforce one OBS process
+## 1. Enter the repository and start exactly one OBS process
 
 ```powershell
 Set-Location 'C:\Users\vakot\Documents\GitHub\obs-status-indicators'
-
-$obs = @(Get-Process -Name obs64 -ErrorAction SilentlyContinue)
-if ($obs.Count -gt 0) {
-    $obs | ForEach-Object { $_.CloseMainWindow() | Out-Null }
-    Start-Sleep -Seconds 5
-    $obs = @(Get-Process -Name obs64 -ErrorAction SilentlyContinue)
-    if ($obs.Count -gt 0) { $obs | ForEach-Object { Stop-Process -Id $_.Id -Force } }
-}
-$deadline = (Get-Date).AddSeconds(15)
-while (@(Get-Process -Name obs64 -ErrorAction SilentlyContinue).Count -ne 0 -and (Get-Date) -lt $deadline) {
-    Start-Sleep -Milliseconds 250
-}
-if (@(Get-Process -Name obs64 -ErrorAction SilentlyContinue).Count -ne 0) { throw 'OBS did not stop' }
+& .\scripts\start-obs-dev.ps1
 ```
 
-Never launch OBS while the count is non-zero. If an unclean previous stop shows the `OBS Studio Crash Detected` window, close that window and wait for the normal `OBS Status Indicators` window before testing.
+The script closes any existing `obs64` process, waits for graceful shutdown, force-stops only remaining OBS processes if necessary, verifies that no OBS process remains, and then starts the portable fixture with the `Sync_Replay_Dev` profile. If an unclean previous stop shows the `OBS Studio Crash Detected` window, close that window and wait for the normal `OBS Status Indicators` window before testing.
 
 ## 2. Build, test, and install
 
@@ -44,15 +32,9 @@ Get-Item .\obs-dev\data\obs-plugins\obs-status-indicators\locale\en-US.ini
 
 The configured CTest target is `RUN_TESTS` because this build uses the Visual Studio generator; `--target test` is not the correct target for this generator.
 
-## 3. Start the standalone fixture
+## 3. Inspect startup
 
-```powershell
-$exe = (Resolve-Path .\obs-dev\bin\64bit\obs64.exe).Path
-if (@(Get-Process -Name obs64 -ErrorAction SilentlyContinue).Count -ne 0) { throw 'Refusing to start a second OBS process' }
-Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -ArgumentList '--portable','--profile','Sync_Replay_Dev'
-```
-
-Wait for the main window and inspect the newest log:
+After the script returns, wait for the main window and inspect the newest log:
 
 ```powershell
 Get-Process -Name obs64 | Select-Object Id,MainWindowTitle,Responding
