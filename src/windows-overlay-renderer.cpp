@@ -11,22 +11,133 @@
 namespace {
 constexpr wchar_t kWindowClassName[] = L"OBSStatusIndicatorsOverlay";
 std::atomic<WindowsOverlayRenderer *> event_hook_renderer = nullptr;
+constexpr COLORREF kIconWhite = RGB(255, 255, 255);
+constexpr COLORREF kMutedRed = RGB(235, 72, 72);
 
-const wchar_t *label_for(IndicatorKind kind)
+void draw_recording_icon(HDC device_context, const RECT &bounds)
 {
-	switch (kind) {
-	case IndicatorKind::Paused:
-		return L"PAUSED";
-	case IndicatorKind::Recording:
-		return L"REC";
-	case IndicatorKind::ReplayBuffer:
-		return L"REPLAY";
-	case IndicatorKind::Microphone:
-		return L"MIC";
-	case IndicatorKind::Saving:
-		return L"SAVING";
+	const int left = bounds.left + 8;
+	const int top = bounds.top + 8;
+	const int right = bounds.right - 8;
+	const int bottom = bounds.bottom - 8;
+	HPEN pen = CreatePen(PS_SOLID, 4, kIconWhite);
+	HGDIOBJ previous_pen = SelectObject(device_context, pen);
+	HGDIOBJ previous_brush = SelectObject(device_context, GetStockObject(NULL_BRUSH));
+	RECT body = {left, top + 8, right - 14, bottom - 8};
+	RoundRect(device_context, body.left, body.top, body.right, body.bottom, 8, 8);
+	POINT lens[] = {{right - 14, top + 18}, {right, top + 12}, {right, bottom - 12}};
+	Polygon(device_context, lens, 3);
+	SelectObject(device_context, previous_brush);
+	SelectObject(device_context, previous_pen);
+	DeleteObject(pen);
+}
+
+void draw_paused_icon(HDC device_context, const RECT &bounds)
+{
+	const int center = (bounds.left + bounds.right) / 2;
+	const int top = bounds.top + 8;
+	const int bottom = bounds.bottom - 8;
+	HBRUSH brush = CreateSolidBrush(kIconWhite);
+	HGDIOBJ previous_brush = SelectObject(device_context, brush);
+	RECT left_bar = {center - 15, top, center - 5, bottom};
+	RECT right_bar = {center + 5, top, center + 15, bottom};
+	RoundRect(device_context, left_bar.left, left_bar.top, left_bar.right, left_bar.bottom, 4, 4);
+	RoundRect(device_context, right_bar.left, right_bar.top, right_bar.right, right_bar.bottom, 4, 4);
+	SelectObject(device_context, previous_brush);
+	DeleteObject(brush);
+}
+
+void draw_replay_icon(HDC device_context, const RECT &bounds)
+{
+	const int left = bounds.left + 8;
+	const int top = bounds.top + 8;
+	const int right = bounds.right - 8;
+	const int bottom = bounds.bottom - 8;
+	HPEN pen = CreatePen(PS_SOLID, 4, kIconWhite);
+	HBRUSH brush = CreateSolidBrush(kIconWhite);
+	HGDIOBJ previous_pen = SelectObject(device_context, pen);
+	HGDIOBJ previous_brush = SelectObject(device_context, GetStockObject(NULL_BRUSH));
+	Arc(device_context, left, top, right, bottom, right - 8, top + 12, left + 12, bottom - 8);
+	SelectObject(device_context, brush);
+	POINT arrow[] = {{right - 9, top + 11}, {right - 25, top + 10}, {right - 12, top + 25}};
+	Polygon(device_context, arrow, 3);
+	SelectObject(device_context, previous_brush);
+	SelectObject(device_context, previous_pen);
+	DeleteObject(brush);
+	DeleteObject(pen);
+}
+
+void draw_microphone_icon(HDC device_context, const RECT &bounds, bool muted)
+{
+	const int center = (bounds.left + bounds.right) / 2;
+	const int top = bounds.top + 8;
+	const int bottom = bounds.bottom - 8;
+	HPEN pen = CreatePen(PS_SOLID, 4, kIconWhite);
+	HGDIOBJ previous_pen = SelectObject(device_context, pen);
+	HGDIOBJ previous_brush = SelectObject(device_context, GetStockObject(NULL_BRUSH));
+	RoundRect(device_context, center - 10, top, center + 10, bottom - 17, 10, 10);
+	MoveToEx(device_context, center - 19, bottom - 25, nullptr);
+	LineTo(device_context, center - 19, bottom - 20);
+	Arc(device_context, center - 19, bottom - 28, center + 19, bottom - 2, center - 19,
+		bottom - 15, center + 19, bottom - 15);
+	MoveToEx(device_context, center, bottom - 2, nullptr);
+	LineTo(device_context, center, bottom - 15);
+	MoveToEx(device_context, center - 14, bottom - 2, nullptr);
+	LineTo(device_context, center + 14, bottom - 2);
+	SelectObject(device_context, previous_brush);
+	SelectObject(device_context, previous_pen);
+	DeleteObject(pen);
+
+	if (muted) {
+		pen = CreatePen(PS_SOLID, 5, kMutedRed);
+		previous_pen = SelectObject(device_context, pen);
+		MoveToEx(device_context, bounds.left + 10, bounds.bottom - 10, nullptr);
+		LineTo(device_context, bounds.right - 10, bounds.top + 10);
+		SelectObject(device_context, previous_pen);
+		DeleteObject(pen);
 	}
-	return L"";
+}
+
+void draw_saving_icon(HDC device_context, const RECT &bounds)
+{
+	const int center = (bounds.left + bounds.right) / 2;
+	const int top = bounds.top + 8;
+	const int bottom = bounds.bottom - 8;
+	HPEN pen = CreatePen(PS_SOLID, 4, kIconWhite);
+	HBRUSH brush = CreateSolidBrush(kIconWhite);
+	HGDIOBJ previous_pen = SelectObject(device_context, pen);
+	HGDIOBJ previous_brush = SelectObject(device_context, GetStockObject(NULL_BRUSH));
+	RoundRect(device_context, bounds.left + 9, top, bounds.right - 9, bottom, 5, 5);
+	MoveToEx(device_context, center, top + 9, nullptr);
+	LineTo(device_context, center, bottom - 16);
+	SelectObject(device_context, brush);
+	POINT arrow[] = {{center - 13, bottom - 19}, {center + 13, bottom - 19}, {center, bottom - 6}};
+	Polygon(device_context, arrow, 3);
+	SelectObject(device_context, previous_brush);
+	SelectObject(device_context, previous_pen);
+	DeleteObject(brush);
+	DeleteObject(pen);
+}
+
+void draw_indicator_icon(HDC device_context, const IndicatorEntry &entry, const RECT &bounds)
+{
+	switch (entry.kind) {
+	case IndicatorKind::Paused:
+		draw_paused_icon(device_context, bounds);
+		break;
+	case IndicatorKind::Recording:
+		draw_recording_icon(device_context, bounds);
+		break;
+	case IndicatorKind::ReplayBuffer:
+		draw_replay_icon(device_context, bounds);
+		break;
+	case IndicatorKind::Microphone:
+		draw_microphone_icon(device_context, bounds, entry.muted);
+		break;
+	case IndicatorKind::Saving:
+		draw_saving_icon(device_context, bounds);
+		break;
+	}
 }
 }
 
@@ -127,7 +238,7 @@ bool WindowsOverlayRenderer::create_window()
 	}
 
 	window_ = CreateWindowExW(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
-		kWindowClassName, L"OBS Status Indicators", WS_POPUP, 0, 0, kWidth, kRowHeight, nullptr,
+		kWindowClassName, L"OBS Status Indicators", WS_POPUP, 0, 0, kIndicatorSize, kIndicatorSize, nullptr,
 		nullptr, instance, this);
 	if (!window_) {
 		obs_log(LOG_ERROR, "overlay window creation failed: %lu", GetLastError());
@@ -150,13 +261,11 @@ bool WindowsOverlayRenderer::create_window()
 	if (!install_z_order_hooks())
 		obs_log(LOG_WARNING, "topmost order recovery hooks unavailable; overlay remains best effort");
 
-	const int screen_width = GetSystemMetrics(SM_CXSCREEN);
 	const int screen_height = GetSystemMetrics(SM_CYSCREEN);
-	const int x = screen_width - kWidth - kMargin > 0 ? screen_width - kWidth - kMargin : 0;
-	const int y = screen_height - kRowHeight - kMargin > 0 ? screen_height - kRowHeight - kMargin : 0;
-	SetWindowPos(window_, HWND_TOPMOST, x, y, kWidth,
-		kRowHeight, SWP_NOACTIVATE | SWP_HIDEWINDOW);
-	obs_log(LOG_INFO, "overlay window ready at primary-display bottom-right");
+	const int y = screen_height - kIndicatorSize - kMargin > 0 ? screen_height - kIndicatorSize - kMargin : 0;
+	SetWindowPos(window_, HWND_TOPMOST, kMargin, y, kIndicatorSize,
+		kIndicatorSize, SWP_NOACTIVATE | SWP_HIDEWINDOW);
+	obs_log(LOG_INFO, "overlay window ready at primary-display bottom-left");
 	return true;
 }
 
@@ -210,8 +319,9 @@ void WindowsOverlayRenderer::uninstall_z_order_hooks()
 bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
 {
 	const int row_count = static_cast<int>(layout.entries.size());
-	const int height = row_count > 0 ? row_count * kRowHeight : kRowHeight;
-	const int width = kWidth;
+	const int height = row_count > 0 ? row_count * kIndicatorSize + (row_count - 1) * kIndicatorGap
+						 : kIndicatorSize;
+	const int width = kIndicatorSize;
 	HDC screen_dc = GetDC(nullptr);
 	HDC memory_dc = CreateCompatibleDC(screen_dc);
 	if (!screen_dc || !memory_dc) {
@@ -242,30 +352,13 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
 		return false;
 	}
 
-	const auto background = static_cast<std::uint32_t>(0xFF20252B);
+	const auto background = static_cast<std::uint32_t>(0xFF000000);
 	std::fill_n(static_cast<std::uint32_t *>(pixels), width * height, background);
 	const HGDIOBJ previous_bitmap = SelectObject(memory_dc, bitmap);
 	for (int index = 0; index < row_count; ++index) {
-		if (layout.entries[index].muted) {
-			const auto muted_background = static_cast<std::uint32_t>(0xFFC04040);
-			std::fill_n(static_cast<std::uint32_t *>(pixels) + index * width * kRowHeight,
-				width * kRowHeight, muted_background);
-		}
-	}
-
-	SetBkMode(memory_dc, TRANSPARENT);
-	SetTextColor(memory_dc, RGB(255, 255, 255));
-	HFONT font = CreateFontW(18, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
-		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
-	if (font) {
-		const HGDIOBJ previous_font = SelectObject(memory_dc, font);
-		for (int index = 0; index < row_count; ++index) {
-			RECT text_rect = {16, index * kRowHeight, width - 8, (index + 1) * kRowHeight};
-			DrawTextW(memory_dc, label_for(layout.entries[index].kind), -1, &text_rect,
-				DT_SINGLELINE | DT_VCENTER);
-		}
-		SelectObject(memory_dc, previous_font);
-		DeleteObject(font);
+		const int top = index * (kIndicatorSize + kIndicatorGap);
+		RECT indicator_rect = {0, top, width, top + kIndicatorSize};
+		draw_indicator_icon(memory_dc, layout.entries[index], indicator_rect);
 	}
 
 	POINT destination = {};
@@ -289,11 +382,9 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
 		return false;
 	}
 
-	const int screen_width = GetSystemMetrics(SM_CXSCREEN);
 	const int screen_height = GetSystemMetrics(SM_CYSCREEN);
-	const int x = screen_width - width - kMargin > 0 ? screen_width - width - kMargin : 0;
 	const int y = screen_height - height - kMargin > 0 ? screen_height - height - kMargin : 0;
-	SetWindowPos(window_, HWND_TOPMOST, x, y, width, height, SWP_NOACTIVATE);
+	SetWindowPos(window_, HWND_TOPMOST, kMargin, y, width, height, SWP_NOACTIVATE);
 	ShowWindow(window_, row_count > 0 ? SW_SHOWNOACTIVATE : SW_HIDE);
 	return true;
 }
