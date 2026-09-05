@@ -54,6 +54,10 @@ if(BUILD_TESTING)
 	add_executable(obs-status-indicators-settings-test tests/overlay-settings-test.cpp)
 	target_include_directories(obs-status-indicators-settings-test PRIVATE src)
 	add_test(NAME overlay-settings COMMAND obs-status-indicators-settings-test)
+
+	add_executable(obs-status-indicators-microphone-activity-test tests/microphone-activity-test.cpp)
+	target_include_directories(obs-status-indicators-microphone-activity-test PRIVATE src)
+	add_test(NAME microphone-activity COMMAND obs-status-indicators-microphone-activity-test)
 endif()
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})

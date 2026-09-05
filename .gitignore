@@ -4,4 +4,5 @@ obs-dev
 /node_modules
 /build_*
 /rundir
+/release/
 cmake/.CMakeBuildNumber

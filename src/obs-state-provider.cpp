@@ -1,6 +1,7 @@
 #include "obs-state-provider.hpp"
 
 #include <obs.h>
+#include <obs-audio-controls.h>
 #include <callback/calldata.h>
 
 #include <cstring>
@@ -128,7 +129,8 @@ IndicatorState ObsStateProvider::read_state() const
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
 		state.microphoneAvailable = microphone_ != nullptr && obs_source_enabled(microphone_);
-		state.microphoneMuted = microphone_ != nullptr && obs_source_muted(microphone_);
+		state.microphoneMuted = microphone_ != nullptr &&
+			(obs_source_muted(microphone_) || !microphone_activity_.active());
 		state.saving = state_.saving;
 	}
 	return state;
@@ -180,6 +182,25 @@ void ObsStateProvider::resolve_microphone()
 		return;
 	}
 
+	microphone_activity_.reset();
+	microphone_volmeter_ = obs_volmeter_create(OBS_FADER_CUBIC);
+	if (microphone_volmeter_) {
+		obs_volmeter_add_callback(microphone_volmeter_, microphone_levels_updated, this);
+		if (!obs_volmeter_attach_source(microphone_volmeter_, microphone_)) {
+			obs_log(LOG_WARNING, "microphone audio activity meter could not attach to source");
+			obs_volmeter_remove_callback(microphone_volmeter_, microphone_levels_updated, this);
+			obs_volmeter_destroy(microphone_volmeter_);
+			microphone_volmeter_ = nullptr;
+		}
+	} else {
+		obs_log(LOG_WARNING, "microphone audio activity meter unavailable");
+	}
+
+	if (microphone_volmeter_) {
+		microphone_activity_tick_registered_ = true;
+		obs_add_tick_callback(microphone_activity_tick, this);
+	}
+
 	signal_handler_t *signals = obs_source_get_signal_handler(microphone_);
 	for (const char *signal : {"mute", "rename", "update", "enable", "audio_activate", "audio_deactivate"})
 		signal_handler_connect(signals, signal, microphone_state_signal, this);
@@ -212,6 +233,17 @@ void ObsStateProvider::resolve_replay_output()
 
 void ObsStateProvider::clear_microphone()
 {
+	if (microphone_activity_tick_registered_) {
+		obs_remove_tick_callback(microphone_activity_tick, this);
+		microphone_activity_tick_registered_ = false;
+	}
+	if (microphone_volmeter_) {
+		obs_volmeter_remove_callback(microphone_volmeter_, microphone_levels_updated, this);
+		obs_volmeter_detach_source(microphone_volmeter_);
+		obs_volmeter_destroy(microphone_volmeter_);
+		microphone_volmeter_ = nullptr;
+	}
+	microphone_activity_.reset();
 	if (!microphone_)
 		return;
 
@@ -249,6 +281,36 @@ void ObsStateProvider::microphone_lifetime_signal(void *data, calldata_t *params
 	static_cast<ObsStateProvider *>(data)->handle_microphone_lifetime_signal();
 }
 
+void ObsStateProvider::microphone_levels_updated(void *data,
+	const float magnitude[MAX_AUDIO_CHANNELS], const float peak[MAX_AUDIO_CHANNELS],
+	const float input_peak[MAX_AUDIO_CHANNELS])
+{
+	UNUSED_PARAMETER(magnitude);
+	UNUSED_PARAMETER(peak);
+	static_cast<ObsStateProvider *>(data)->handle_microphone_levels(input_peak);
+}
+
+void ObsStateProvider::handle_microphone_levels(const float input_peak[MAX_AUDIO_CHANNELS])
+{
+	for (size_t channel = 0; channel < MAX_AUDIO_CHANNELS; ++channel) {
+		if (input_peak[channel] > MicrophoneActivity::kAudibleThresholdDb) {
+			microphone_activity_.observe(input_peak[channel]);
+			return;
+		}
+	}
+}
+
+void ObsStateProvider::microphone_activity_tick(void *data, float seconds)
+{
+	static_cast<ObsStateProvider *>(data)->handle_microphone_activity_tick(seconds);
+}
+
+void ObsStateProvider::handle_microphone_activity_tick(float seconds)
+{
+	if (microphone_activity_.tick(seconds))
+		reconcile(false);
+}
+
 void ObsStateProvider::handle_microphone_lifetime_signal()
 {
 	obs_log(LOG_WARNING, "microphone source removed or destroyed");
@@ -262,7 +324,7 @@ void ObsStateProvider::set_microphone_state(bool available, bool muted)
 		std::lock_guard<std::mutex> lock(mutex_);
 		next = state_;
 		next.microphoneAvailable = available;
-		next.microphoneMuted = muted;
+		next.microphoneMuted = muted || !microphone_activity_.active();
 	}
 	publish(next, false);
 }
