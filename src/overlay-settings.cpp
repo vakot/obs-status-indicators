@@ -15,6 +15,7 @@ constexpr char kOffset[] = "offset";
 constexpr char kGap[] = "gap";
 constexpr char kBackgroundColor[] = "background_color";
 constexpr char kIconColor[] = "icon_color";
+constexpr char kOpacity[] = "opacity";
 
 constexpr char kTopLeft[] = "top-left";
 constexpr char kTopRight[] = "top-right";
@@ -76,7 +77,7 @@ void read_color(obs_data_t *data, const char *name, std::uint32_t fallback, std:
 		return;
 	}
 
-	value = static_cast<std::uint32_t>(stored);
+	value = 0xFF000000 | (static_cast<std::uint32_t>(stored) & 0x00FFFFFF);
 }
 }
 
@@ -98,6 +99,8 @@ OverlaySettings load_overlay_settings()
 	settings.gap = static_cast<int>(obs_data_get_int(data, kGap));
 	read_color(data, kBackgroundColor, settings.background_color, settings.background_color);
 	read_color(data, kIconColor, settings.icon_color, settings.icon_color);
+	if (obs_data_has_user_value(data, kOpacity))
+		settings.opacity = static_cast<int>(obs_data_get_int(data, kOpacity));
 	obs_data_release(data);
 	return normalize_overlay_settings(settings);
 }
@@ -123,6 +126,7 @@ bool save_overlay_settings(const OverlaySettings &input)
 	obs_data_set_int(data, kGap, settings.gap);
 	obs_data_set_int(data, kBackgroundColor, settings.background_color);
 	obs_data_set_int(data, kIconColor, settings.icon_color);
+	obs_data_set_int(data, kOpacity, settings.opacity);
 	const bool saved = obs_data_save_json_safe(data, path, ".tmp", ".bak");
 	obs_data_release(data);
 	bfree(path);

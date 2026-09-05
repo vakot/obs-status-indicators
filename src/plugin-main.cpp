@@ -55,9 +55,10 @@ static void state_changed(const IndicatorState &state, void *context)
 bool obs_module_load(void)
 {
 	overlay_settings = load_overlay_settings();
-	obs_log(LOG_INFO, "overlay settings loaded: origin=%d orientation=%d offset=%d gap=%d background=0x%08x icon=0x%08x",
+	obs_log(LOG_INFO, "overlay settings loaded: origin=%d orientation=%d offset=%d gap=%d opacity=%d background=0x%08x icon=0x%08x",
 		static_cast<int>(overlay_settings.origin), static_cast<int>(overlay_settings.orientation),
-		overlay_settings.offset, overlay_settings.gap, overlay_settings.background_color,
+		overlay_settings.offset, overlay_settings.gap, overlay_settings.opacity,
+		overlay_settings.background_color,
 		overlay_settings.icon_color);
 	state_provider = new (std::nothrow) ObsStateProvider(state_changed, nullptr);
 	if (!state_provider) {

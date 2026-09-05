@@ -83,14 +83,17 @@ It should report `server_enabled: false`. For an API-driven experiment, stop OBS
 
 ## 6. Settings dialog and persistence checks
 
-Open `Tools > OBS Status Indicators Settings` in the standalone OBS window. The dialog is modeless and exposes:
+Open `Tools > Status Indicators` in the standalone OBS window. The dialog is modeless and exposes:
 
 - `Origin`: top-left, top-right, bottom-left, or bottom-right of the primary display;
 - `Orientation`: vertical or horizontal;
 - `Offset`: equal pixel distance from the selected corner's two edges;
 - `Gap`: transparent pixel distance between 48x48 indicator tiles;
-- `Background color`: tile fill, including alpha;
-- `Icon color`: Lucide stroke color, including alpha.
+- `Background color`: solid tile fill color;
+- `Icon color`: solid Lucide stroke color;
+- `Opacity`: shared complete-indicator opacity from 1% to 100%.
+
+The controls are grouped as `Layout` (Origin and Orientation side by side), `Spacing` (Offset and Gap side by side), and `Appearance` (Background color and Icon color side by side, with Opacity below them).
 
 Use `Apply` and verify the overlay moves or repaints immediately. Use `Cancel` after changing a control and verify that unsaved values are discarded. The persisted file is:
 
@@ -98,13 +101,13 @@ Use `Apply` and verify the overlay moves or repaints immediately. Use `Cancel` a
 Get-Content .\obs-dev\config\obs-studio\plugin_config\obs-status-indicators\settings.json
 ```
 
-The JSON uses `origin`, `orientation`, `offset`, `gap`, `background_color`, and `icon_color`. Color integers use Qt's `0xAARRGGBB` representation. Stop OBS before editing this file directly, then restart the single fixture instance to test load-time persistence and malformed-value fallback.
+The JSON uses `origin`, `orientation`, `offset`, `gap`, `background_color`, `icon_color`, and `opacity`. Color integers use opaque Qt `0xFFRRGGBB` representation; any alpha byte in an older file is ignored. Stop OBS before editing this file directly, then restart the single fixture instance to test load-time persistence and malformed-value fallback.
 
 ## 7. State and indicator checks
 
 Perform these one at a time in the running standalone instance and correlate the visible overlay with the newest log snapshots:
 
-The overlay is anchored to the primary display's top-left origin `(0, 0)`. Each active state is a 48x48 black square whose complete tile, including its Lucide icon, is composited at 50% opacity with an 8-pixel icon inset; multiple states stack downward with an 8-pixel transparent gap. Recording, pause, Replay Buffer, microphone, and saving use distinct Lucide action glyphs, and a muted microphone uses the Lucide `mic-off` glyph.
+The overlay is anchored to the configured corner and spacing. Each active state is a 48x48 square whose complete tile, including its Lucide icon, is composited at the configured shared opacity (50% by default) with an 8-pixel icon inset; multiple states use the configured orientation and gap. Recording, pause, Replay Buffer, microphone, and saving use distinct Lucide action glyphs, and a muted microphone uses the Lucide `mic-off` glyph.
 
 1. Start Recording. Expect `REC`; pause recording and expect `PAUSED` to replace `REC`; resume and stop.
 2. Start Replay Buffer. Expect `REPLAY`; use `Save Replay Buffer`; expect a bounded `SAVING` state after the save-completion event, then its expiry; stop Replay Buffer.

@@ -54,12 +54,9 @@ bool render_lucide_icon(QImage &tile, const IndicatorEntry &entry, std::uint32_t
 	}
 
 	QByteArray svg = icon_file.readAll();
-	const QColor color = QColor::fromRgba(icon_color);
+	const QColor color = QColor::fromRgb(icon_color);
 	const QByteArray stroke = QByteArray("stroke=\"") + color.name(QColor::HexRgb).toUtf8() + "\"";
 	svg.replace("stroke=\"#ffffff\"", stroke);
-	const QByteArray opacity = QByteArray("stroke-opacity=\"") +
-		QByteArray::number(color.alphaF(), 'f', 6) + "\"";
-	svg.replace("stroke-width=\"2\"", opacity + " stroke-width=\"2\"");
 	QSvgRenderer renderer(svg);
 	if (!renderer.isValid()) {
 		obs_log(LOG_WARNING, "indicator icon load failed: %s", relative_path);
@@ -307,7 +304,7 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout, const 
 		const int left = horizontal ? index * (kIndicatorSize + settings.gap) : 0;
 		const int top = horizontal ? 0 : index * (kIndicatorSize + settings.gap);
 		QImage tile(kIndicatorSize, kIndicatorSize, QImage::Format_ARGB32_Premultiplied);
-		tile.fill(QColor::fromRgba(settings.background_color));
+		tile.fill(QColor::fromRgb(settings.background_color));
 		render_lucide_icon(tile, layout.entries[index], settings.icon_color);
 		for (int row = 0; row < tile.height(); ++row) {
 			std::memcpy(static_cast<std::uint8_t *>(pixels) +
@@ -327,7 +324,8 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout, const 
 	destination.y = bottom ? std::max(0, screen_height - height - settings.offset) : settings.offset;
 	SIZE size = {width, height};
 	POINT source = {0, 0};
-	BLENDFUNCTION blend = {AC_SRC_OVER, 0, 255, AC_SRC_ALPHA};
+	const BYTE opacity = static_cast<BYTE>((settings.opacity * 255 + 50) / 100);
+	BLENDFUNCTION blend = {AC_SRC_OVER, 0, opacity, AC_SRC_ALPHA};
 	const BOOL updated = UpdateLayeredWindow(window_, screen_dc, &destination, &size, memory_dc,
 		&source, 0, &blend, ULW_ALPHA);
 

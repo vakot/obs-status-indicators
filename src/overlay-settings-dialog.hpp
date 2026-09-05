@@ -32,6 +32,7 @@ private:
 	QComboBox *orientation_combo_ = nullptr;
 	QSpinBox *offset_spin_ = nullptr;
 	QSpinBox *gap_spin_ = nullptr;
+	QSpinBox *opacity_spin_ = nullptr;
 	QPushButton *background_color_button_ = nullptr;
 	QPushButton *icon_color_button_ = nullptr;
 	QDialogButtonBox *button_box_ = nullptr;
