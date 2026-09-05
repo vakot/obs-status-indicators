@@ -29,8 +29,8 @@ if(ENABLE_FRONTEND_API)
 endif()
 
 if(ENABLE_QT)
-  find_package(Qt6 COMPONENTS Core Gui Svg REQUIRED)
-  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Svg)
+  find_package(Qt6 COMPONENTS Core Gui Svg Widgets REQUIRED)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Svg Qt6::Widgets)
 endif()
 
 target_sources(
@@ -38,6 +38,8 @@ target_sources(
   PRIVATE
 	src/indicator-controller.cpp
     src/obs-state-provider.cpp
+    src/overlay-settings.cpp
+    src/overlay-settings-dialog.cpp
     src/plugin-main.cpp
     src/windows-overlay-renderer.cpp
 )
@@ -48,6 +50,10 @@ if(BUILD_TESTING)
 		src/indicator-controller.cpp)
 	target_include_directories(obs-status-indicators-controller-test PRIVATE src)
 	add_test(NAME indicator-controller COMMAND obs-status-indicators-controller-test)
+
+	add_executable(obs-status-indicators-settings-test tests/overlay-settings-test.cpp)
+	target_include_directories(obs-status-indicators-settings-test PRIVATE src)
+	add_test(NAME overlay-settings COMMAND obs-status-indicators-settings-test)
 endif()
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})

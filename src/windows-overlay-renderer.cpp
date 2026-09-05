@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <cstring>
 
+#include <QColor>
+#include <QFile>
 #include <QImage>
 #include <QPainter>
 #include <QSvgRenderer>
@@ -17,7 +19,6 @@ namespace {
 constexpr wchar_t kWindowClassName[] = L"OBSStatusIndicatorsOverlay";
 std::atomic<WindowsOverlayRenderer *> event_hook_renderer = nullptr;
 constexpr int kIconPadding = 8;
-constexpr BYTE kIndicatorOpacity = 128;
 const char *icon_file_for(const IndicatorEntry &entry)
 {
 	switch (entry.kind) {
@@ -35,7 +36,7 @@ const char *icon_file_for(const IndicatorEntry &entry)
 	return nullptr;
 }
 
-bool render_lucide_icon(QImage &tile, const IndicatorEntry &entry)
+bool render_lucide_icon(QImage &tile, const IndicatorEntry &entry, std::uint32_t icon_color)
 {
 	const char *relative_path = icon_file_for(entry);
 	char *icon_path = obs_module_file(relative_path);
@@ -46,7 +47,20 @@ bool render_lucide_icon(QImage &tile, const IndicatorEntry &entry)
 
 	const QString path = QString::fromUtf8(icon_path);
 	bfree(icon_path);
-	QSvgRenderer renderer(path);
+	QFile icon_file(path);
+	if (!icon_file.open(QIODevice::ReadOnly)) {
+		obs_log(LOG_WARNING, "indicator icon open failed: %s", relative_path);
+		return false;
+	}
+
+	QByteArray svg = icon_file.readAll();
+	const QColor color = QColor::fromRgba(icon_color);
+	const QByteArray stroke = QByteArray("stroke=\"") + color.name(QColor::HexRgb).toUtf8() + "\"";
+	svg.replace("stroke=\"#ffffff\"", stroke);
+	const QByteArray opacity = QByteArray("stroke-opacity=\"") +
+		QByteArray::number(color.alphaF(), 'f', 6) + "\"";
+	svg.replace("stroke-width=\"2\"", opacity + " stroke-width=\"2\"");
+	QSvgRenderer renderer(svg);
 	if (!renderer.isValid()) {
 		obs_log(LOG_WARNING, "indicator icon load failed: %s", relative_path);
 		return false;
@@ -114,6 +128,19 @@ void WindowsOverlayRenderer::update_layout(const IndicatorLayout &layout)
 		PostThreadMessageW(thread_id, kUpdateLayoutMessage, 0, 0);
 }
 
+void WindowsOverlayRenderer::update_settings(const OverlaySettings &settings)
+{
+	DWORD thread_id = 0;
+	{
+		std::lock_guard<std::mutex> lock(mutex_);
+		pending_settings_ = normalize_overlay_settings(settings);
+		thread_id = thread_id_;
+	}
+
+	if (thread_id != 0)
+		PostThreadMessageW(thread_id, kUpdateLayoutMessage, 0, 0);
+}
+
 void WindowsOverlayRenderer::run()
 {
 	{
@@ -165,11 +192,13 @@ bool WindowsOverlayRenderer::create_window()
 	}
 
 	IndicatorLayout initial_layout;
+	OverlaySettings initial_settings;
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
 		initial_layout = pending_layout_;
+		initial_settings = pending_settings_;
 	}
-	if (!render_layout(initial_layout))
+	if (!render_layout(initial_layout, initial_settings))
 		return false;
 
 	if (!SetWindowDisplayAffinity(window_, WDA_EXCLUDEFROMCAPTURE)) {
@@ -180,9 +209,9 @@ bool WindowsOverlayRenderer::create_window()
 	if (!install_z_order_hooks())
 		obs_log(LOG_WARNING, "topmost order recovery hooks unavailable; overlay remains best effort");
 
-	SetWindowPos(window_, HWND_TOPMOST, 0, 0, kIndicatorSize,
-		kIndicatorSize, SWP_NOACTIVATE | SWP_HIDEWINDOW);
-	obs_log(LOG_INFO, "overlay window ready at primary-display top-left");
+	SetWindowPos(window_, HWND_TOPMOST, 0, 0, 0, 0,
+		SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
+	obs_log(LOG_INFO, "overlay window ready at configured primary-display position");
 	return true;
 }
 
@@ -233,12 +262,14 @@ void WindowsOverlayRenderer::uninstall_z_order_hooks()
 	topmost_reassertion_pending_.store(false, std::memory_order_release);
 }
 
-bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
+bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout, const OverlaySettings &settings)
 {
-	const int row_count = static_cast<int>(layout.entries.size());
-	const int height = row_count > 0 ? row_count * kIndicatorSize + (row_count - 1) * kIndicatorGap
-						 : kIndicatorSize;
-	const int width = kIndicatorSize;
+	const int entry_count = static_cast<int>(layout.entries.size());
+	const bool horizontal = settings.orientation == OverlayOrientation::Horizontal;
+	const int primary_count = entry_count > 0 ? entry_count : 1;
+	const int primary_size = primary_count * kIndicatorSize + (primary_count - 1) * settings.gap;
+	const int width = horizontal ? primary_size : kIndicatorSize;
+	const int height = horizontal ? kIndicatorSize : primary_size;
 	HDC screen_dc = GetDC(nullptr);
 	HDC memory_dc = CreateCompatibleDC(screen_dc);
 	if (!screen_dc || !memory_dc) {
@@ -272,24 +303,31 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
 	const auto background = static_cast<std::uint32_t>(0x00000000);
 	std::fill_n(static_cast<std::uint32_t *>(pixels), width * height, background);
 	const HGDIOBJ previous_bitmap = SelectObject(memory_dc, bitmap);
-	for (int index = 0; index < row_count; ++index) {
-		const int top = index * (kIndicatorSize + kIndicatorGap);
+	for (int index = 0; index < entry_count; ++index) {
+		const int left = horizontal ? index * (kIndicatorSize + settings.gap) : 0;
+		const int top = horizontal ? 0 : index * (kIndicatorSize + settings.gap);
 		QImage tile(kIndicatorSize, kIndicatorSize, QImage::Format_ARGB32_Premultiplied);
-		tile.fill(Qt::black);
-		render_lucide_icon(tile, layout.entries[index]);
-		std::memcpy(static_cast<std::uint8_t *>(pixels) +
-				static_cast<size_t>(top) * width * sizeof(std::uint32_t), tile.constBits(),
-				static_cast<size_t>(tile.bytesPerLine()) * tile.height());
+		tile.fill(QColor::fromRgba(settings.background_color));
+		render_lucide_icon(tile, layout.entries[index], settings.icon_color);
+		for (int row = 0; row < tile.height(); ++row) {
+			std::memcpy(static_cast<std::uint8_t *>(pixels) +
+					(static_cast<size_t>(top + row) * width + left) * sizeof(std::uint32_t),
+				tile.constScanLine(row), static_cast<size_t>(tile.bytesPerLine()));
+		}
 	}
 
+	const int screen_width = GetSystemMetrics(SM_CXSCREEN);
+	const int screen_height = GetSystemMetrics(SM_CYSCREEN);
+	const bool right = settings.origin == OverlayOrigin::TopRight ||
+		settings.origin == OverlayOrigin::BottomRight;
+	const bool bottom = settings.origin == OverlayOrigin::BottomLeft ||
+		settings.origin == OverlayOrigin::BottomRight;
 	POINT destination = {};
-	RECT window_rect = {};
-	GetWindowRect(window_, &window_rect);
-	destination.x = window_rect.left;
-	destination.y = window_rect.top;
+	destination.x = right ? std::max(0, screen_width - width - settings.offset) : settings.offset;
+	destination.y = bottom ? std::max(0, screen_height - height - settings.offset) : settings.offset;
 	SIZE size = {width, height};
 	POINT source = {0, 0};
-	BLENDFUNCTION blend = {AC_SRC_OVER, 0, kIndicatorOpacity, AC_SRC_ALPHA};
+	BLENDFUNCTION blend = {AC_SRC_OVER, 0, 255, AC_SRC_ALPHA};
 	const BOOL updated = UpdateLayeredWindow(window_, screen_dc, &destination, &size, memory_dc,
 		&source, 0, &blend, ULW_ALPHA);
 
@@ -303,20 +341,22 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
 		return false;
 	}
 
-	SetWindowPos(window_, HWND_TOPMOST, 0, 0, width, height, SWP_NOACTIVATE);
-	ShowWindow(window_, row_count > 0 ? SW_SHOWNOACTIVATE : SW_HIDE);
+	SetWindowPos(window_, HWND_TOPMOST, destination.x, destination.y, width, height, SWP_NOACTIVATE);
+	ShowWindow(window_, entry_count > 0 ? SW_SHOWNOACTIVATE : SW_HIDE);
 	return true;
 }
 
 void WindowsOverlayRenderer::apply_pending_layout()
 {
 	IndicatorLayout layout;
+	OverlaySettings settings;
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
 		layout = pending_layout_;
+		settings = pending_settings_;
 	}
 
-	if (!render_layout(layout))
+	if (!render_layout(layout, settings))
 		obs_log(LOG_WARNING, "overlay layout update failed");
 }
 
