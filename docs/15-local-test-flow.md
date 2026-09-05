@@ -118,7 +118,17 @@ The expected result is desktop/game content without the overlay marker. For Wind
 
 Also record the cases that are not available on the fixture: normal/maximized/borderless/exclusive fullscreen, monitor changes, and coexistence with Discord/Steam/NVIDIA overlays. Do not mark them passed without an actual captured frame.
 
-## 7. Teardown and final assertion
+## 7. Topmost ordering check
+
+With the overlay visible, open a topmost utility such as Start11's custom control panel or another always-on-top test window. Interact with that panel repeatedly, then verify that the OBS indicator remains above it without changing OBS recording or Replay Buffer state. The renderer listens for foreground and top-level window show/hide/reorder events and reasserts `HWND_TOPMOST` on the overlay UI thread; it does not use a periodic timer. Confirm the startup log contains:
+
+```text
+[obs-status-indicators] topmost order recovery hooks enabled
+```
+
+If the third-party utility still wins z-order, record its windowing mode and whether it uses a compositor or exclusive-fullscreen path; Windows does not expose an absolute immutable “highest topmost” level.
+
+## 8. Teardown and final assertion
 
 Close OBS gracefully after each experiment. If a process remains, stop that exact process before launching anything else. At the end:
 

@@ -8,6 +8,8 @@ Phase 3 is **possible**. The plugin now owns a dedicated Win32 UI thread and a b
 
 The overlay uses `WS_POPUP` with `WS_EX_LAYERED`, `WS_EX_TRANSPARENT`, `WS_EX_NOACTIVATE`, and `WS_EX_TOOLWINDOW`. It reports `HTTRANSPARENT` for `WM_NCHITTEST` and `MA_NOACTIVATE` for `WM_MOUSEACTIVATE`, so it has no intended input/focus ownership. `SetWindowPos(HWND_TOPMOST, ..., SWP_NOACTIVATE | SWP_SHOWWINDOW)` places the 176x48 logical-pixel marker 8 pixels from the primary display's bottom-right corner.
 
+`HWND_TOPMOST` places the window in the topmost band but does not permanently fix its order relative to other topmost windows. Start11 and similar tools can move their own topmost panel ahead after interaction. The renderer therefore registers out-of-context `SetWinEventHook` listeners for foreground and top-level show/hide/reorder events. These callbacks only coalesce and post a private message; the overlay UI thread then reasserts `SetWindowPos(HWND_TOPMOST, ..., SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)`. This is event-driven recovery with no periodic timer or 1-2 second polling loop. Hook registration is nonfatal so the overlay remains usable if the capability is unavailable.
+
 All window creation, painting, positioning, and destruction happen on the overlay thread. The plugin unload order destroys the overlay before destroying the OBS state provider.
 
 ## Rendering and capture evidence
@@ -16,6 +18,7 @@ The marker is rendered into an opaque premultiplied-alpha-compatible 32-bit DIB 
 
 - `capture exclusion enabled for overlay`.
 - `overlay window ready at primary-display bottom-right`.
+- `topmost order recovery hooks enabled`.
 
 Window inspection during the run found the visible `OBSStatusIndicatorsOverlay` at the primary-display bottom-right and returned `HTTRANSPARENT`. The desktop screenshot did not contain the marker while the foreground game was displayed; this is consistent with the active `WDA_EXCLUDEFROMCAPTURE` behavior and is evidence that the capture API excluded the overlay from that screenshot. It is not evidence that every capture path or exclusive-fullscreen compositor will exclude it.
 

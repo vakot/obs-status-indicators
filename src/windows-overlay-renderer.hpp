@@ -4,6 +4,7 @@
 
 #include <windows.h>
 
+#include <atomic>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
@@ -25,14 +26,21 @@ private:
 	static constexpr int kRowHeight = 32;
 	static constexpr int kMargin = 8;
 	static constexpr UINT kUpdateLayoutMessage = WM_APP + 1;
+	static constexpr UINT kReassertTopmostMessage = WM_APP + 2;
 
 	static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
+	static void CALLBACK win_event_proc(HWINEVENTHOOK hook, DWORD event, HWND window, LONG object_id,
+		LONG child_id, DWORD event_thread, DWORD event_time);
 
 	void run();
 	bool create_window();
 	void destroy_window();
+	bool install_z_order_hooks();
+	void uninstall_z_order_hooks();
 	bool render_layout(const IndicatorLayout &layout);
 	void apply_pending_layout();
+	void request_topmost_reassertion();
+	void reassert_topmost();
 	void signal_initialized(bool success);
 
 	std::thread thread_;
@@ -43,4 +51,7 @@ private:
 	DWORD thread_id_ = 0;
 	HWND window_ = nullptr;
 	IndicatorLayout pending_layout_;
+	HWINEVENTHOOK foreground_event_hook_ = nullptr;
+	HWINEVENTHOOK object_event_hook_ = nullptr;
+	std::atomic_bool topmost_reassertion_pending_ = false;
 };
