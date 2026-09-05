@@ -24,7 +24,6 @@ public:
 	void update_settings(const OverlaySettings &settings);
 
 private:
-	static constexpr int kIndicatorSize = 48;
 	static constexpr UINT kUpdateLayoutMessage = WM_APP + 1;
 	static constexpr UINT kReassertTopmostMessage = WM_APP + 2;
 

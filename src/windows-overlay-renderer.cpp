@@ -18,7 +18,11 @@
 namespace {
 constexpr wchar_t kWindowClassName[] = L"OBSStatusIndicatorsOverlay";
 std::atomic<WindowsOverlayRenderer *> event_hook_renderer = nullptr;
-constexpr int kIconPadding = 8;
+
+int icon_padding_for_size(int indicator_size)
+{
+	return std::max(1, (indicator_size + 3) / 6);
+}
 const char *icon_file_for(const IndicatorEntry &entry)
 {
 	switch (entry.kind) {
@@ -63,10 +67,11 @@ bool render_lucide_icon(QImage &tile, const IndicatorEntry &entry, std::uint32_t
 		return false;
 	}
 
+	const int icon_padding = icon_padding_for_size(tile.width());
 	QPainter painter(&tile);
 	renderer.render(&painter,
-		QRectF(kIconPadding, kIconPadding, tile.width() - 2 * kIconPadding,
-			tile.height() - 2 * kIconPadding));
+		QRectF(icon_padding, icon_padding, tile.width() - 2 * icon_padding,
+			tile.height() - 2 * icon_padding));
 	return true;
 }
 }
@@ -181,7 +186,8 @@ bool WindowsOverlayRenderer::create_window()
 	}
 
 	window_ = CreateWindowExW(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
-		kWindowClassName, L"OBS Status Indicators", WS_POPUP, 0, 0, kIndicatorSize, kIndicatorSize, nullptr,
+		kWindowClassName, L"OBS Status Indicators", WS_POPUP, 0, 0, kDefaultIndicatorSize,
+		kDefaultIndicatorSize, nullptr,
 		nullptr, instance, this);
 	if (!window_) {
 		obs_log(LOG_ERROR, "overlay window creation failed: %lu", GetLastError());
@@ -264,9 +270,10 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout, const 
 	const int entry_count = static_cast<int>(layout.entries.size());
 	const bool horizontal = settings.orientation == OverlayOrientation::Horizontal;
 	const int primary_count = entry_count > 0 ? entry_count : 1;
-	const int primary_size = primary_count * kIndicatorSize + (primary_count - 1) * settings.gap;
-	const int width = horizontal ? primary_size : kIndicatorSize;
-	const int height = horizontal ? kIndicatorSize : primary_size;
+	const int primary_size = primary_count * settings.indicator_size +
+		(primary_count - 1) * settings.gap;
+	const int width = horizontal ? primary_size : settings.indicator_size;
+	const int height = horizontal ? settings.indicator_size : primary_size;
 	HDC screen_dc = GetDC(nullptr);
 	HDC memory_dc = CreateCompatibleDC(screen_dc);
 	if (!screen_dc || !memory_dc) {
@@ -301,9 +308,10 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout, const 
 	std::fill_n(static_cast<std::uint32_t *>(pixels), width * height, background);
 	const HGDIOBJ previous_bitmap = SelectObject(memory_dc, bitmap);
 	for (int index = 0; index < entry_count; ++index) {
-		const int left = horizontal ? index * (kIndicatorSize + settings.gap) : 0;
-		const int top = horizontal ? 0 : index * (kIndicatorSize + settings.gap);
-		QImage tile(kIndicatorSize, kIndicatorSize, QImage::Format_ARGB32_Premultiplied);
+		const int left = horizontal ? index * (settings.indicator_size + settings.gap) : 0;
+		const int top = horizontal ? 0 : index * (settings.indicator_size + settings.gap);
+		QImage tile(settings.indicator_size, settings.indicator_size,
+			QImage::Format_ARGB32_Premultiplied);
 		tile.fill(QColor::fromRgb(settings.background_color));
 		render_lucide_icon(tile, layout.entries[index], settings.icon_color);
 		for (int row = 0; row < tile.height(); ++row) {

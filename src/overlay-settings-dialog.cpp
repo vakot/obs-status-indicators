@@ -84,17 +84,23 @@ OverlaySettingsDialog::OverlaySettingsDialog(QWidget *parent, const OverlaySetti
 
 	auto *spacing_section = new QGroupBox(obs_module_text("Spacing"), this);
 	auto *spacing_grid = new QGridLayout(spacing_section);
-	offset_spin_ = new QSpinBox(this);
-	offset_spin_->setRange(0, 4096);
-	offset_spin_->setSuffix(" px");
-	spacing_grid->addWidget(new QLabel(obs_module_text("Offset"), spacing_section), 0, 0);
-	spacing_grid->addWidget(offset_spin_, 0, 1);
+	indicator_size_spin_ = new QSpinBox(this);
+	indicator_size_spin_->setRange(kMinIndicatorSize, kMaxIndicatorSize);
+	indicator_size_spin_->setSuffix(" px");
+	spacing_grid->addWidget(new QLabel(obs_module_text("IndicatorSize"), spacing_section), 0, 0);
+	spacing_grid->addWidget(indicator_size_spin_, 0, 1);
 
 	gap_spin_ = new QSpinBox(this);
 	gap_spin_->setRange(0, 512);
 	gap_spin_->setSuffix(" px");
 	spacing_grid->addWidget(new QLabel(obs_module_text("Gap"), spacing_section), 0, 2);
 	spacing_grid->addWidget(gap_spin_, 0, 3);
+
+	offset_spin_ = new QSpinBox(this);
+	offset_spin_->setRange(0, 4096);
+	offset_spin_->setSuffix(" px");
+	spacing_grid->addWidget(new QLabel(obs_module_text("Offset"), spacing_section), 1, 0);
+	spacing_grid->addWidget(offset_spin_, 1, 1);
 	spacing_grid->setColumnStretch(1, 1);
 	spacing_grid->setColumnStretch(3, 1);
 	layout->addWidget(spacing_section);
@@ -168,6 +174,7 @@ void OverlaySettingsDialog::populate_controls(const OverlaySettings &settings)
 																	 : kOrientationVertical);
 	offset_spin_->setValue(normalized.offset);
 	gap_spin_->setValue(normalized.gap);
+	indicator_size_spin_->setValue(normalized.indicator_size);
 	opacity_spin_->setValue(normalized.opacity);
 	update_color_button(background_color_button_, normalized.background_color);
 	update_color_button(icon_color_button_, normalized.icon_color);
@@ -182,6 +189,7 @@ OverlaySettings OverlaySettingsDialog::settings_from_controls() const
 																	 : OverlayOrientation::Vertical;
 	settings.offset = offset_spin_->value();
 	settings.gap = gap_spin_->value();
+	settings.indicator_size = indicator_size_spin_->value();
 	settings.opacity = opacity_spin_->value();
 	return settings;
 }

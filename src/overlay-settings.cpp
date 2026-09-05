@@ -13,6 +13,7 @@ constexpr char kOrigin[] = "origin";
 constexpr char kOrientation[] = "orientation";
 constexpr char kOffset[] = "offset";
 constexpr char kGap[] = "gap";
+constexpr char kIndicatorSize[] = "indicator_size";
 constexpr char kBackgroundColor[] = "background_color";
 constexpr char kIconColor[] = "icon_color";
 constexpr char kOpacity[] = "opacity";
@@ -97,6 +98,8 @@ OverlaySettings load_overlay_settings()
 	settings.orientation = orientation_from_name(obs_data_get_string(data, kOrientation));
 	settings.offset = static_cast<int>(obs_data_get_int(data, kOffset));
 	settings.gap = static_cast<int>(obs_data_get_int(data, kGap));
+	if (obs_data_has_user_value(data, kIndicatorSize))
+		settings.indicator_size = static_cast<int>(obs_data_get_int(data, kIndicatorSize));
 	read_color(data, kBackgroundColor, settings.background_color, settings.background_color);
 	read_color(data, kIconColor, settings.icon_color, settings.icon_color);
 	if (obs_data_has_user_value(data, kOpacity))
@@ -124,6 +127,7 @@ bool save_overlay_settings(const OverlaySettings &input)
 	obs_data_set_string(data, kOrientation, orientation_name(settings.orientation));
 	obs_data_set_int(data, kOffset, settings.offset);
 	obs_data_set_int(data, kGap, settings.gap);
+	obs_data_set_int(data, kIndicatorSize, settings.indicator_size);
 	obs_data_set_int(data, kBackgroundColor, settings.background_color);
 	obs_data_set_int(data, kIconColor, settings.icon_color);
 	obs_data_set_int(data, kOpacity, settings.opacity);
