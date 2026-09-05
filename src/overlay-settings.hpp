@@ -26,7 +26,7 @@ struct OverlaySettings {
 	int indicator_size = kDefaultIndicatorSize;
 	std::uint32_t background_color = 0xFF000000;
 	std::uint32_t icon_color = 0xFFFFFFFF;
-	int opacity = 80;
+	int opacity = 65;
 };
 
 inline OverlaySettings default_overlay_settings()

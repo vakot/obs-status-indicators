@@ -12,7 +12,7 @@ int main()
 	assert(defaults.indicator_size == 48);
 	assert(defaults.background_color == 0xFF000000);
 	assert(defaults.icon_color == 0xFFFFFFFF);
-	assert(defaults.opacity == 80);
+	assert(defaults.opacity == 65);
 
 	OverlaySettings out_of_range = defaults;
 	out_of_range.offset = 99999;

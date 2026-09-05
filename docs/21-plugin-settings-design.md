@@ -13,13 +13,13 @@ The plugin stores one JSON object in `settings.json`:
 | `indicator_size` | integer | `48` | Width and height in pixels of each square indicator tile; valid range is `16..256`. |
 | `background_color` | unsigned 32-bit RGB | black | Tile background color. |
 | `icon_color` | unsigned 32-bit RGB | white | Lucide stroke color. |
-| `opacity` | integer | `80` | Shared opacity for the complete indicator tile, from `1` to `100` percent. |
+| `opacity` | integer | `65` | Shared opacity for the complete indicator tile, from `1` to `100` percent. |
 
 Colors use Qt's opaque `QColor::rgb()` representation (`0xFFRRGGBB`) and are saved as JSON integers. The renderer applies the single configured opacity through `UpdateLayeredWindow`'s source alpha, so the background and icon always fade together. Previously saved alpha bytes are ignored when loading colors.
 
 ## Defaults and validation
 
-Defaults preserve the current post-MVP appearance: top-left origin, vertical orientation, 4px offset, 4px gap, 48px indicators, black background, white icon color, and 80% shared opacity.
+Defaults preserve the current post-MVP appearance: top-left origin, vertical orientation, 4px offset, 4px gap, 48px indicators, black background, white icon color, and 65% shared opacity.
 
 The loader must validate values from disk rather than trusting JSON:
 
