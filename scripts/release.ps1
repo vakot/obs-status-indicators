@@ -169,7 +169,7 @@ Installation/update:
 
 The plugin is a native Windows x64 OBS module and requires a compatible OBS installation.
 "@
-    Set-Content -LiteralPath (Join-Path $stagingDirectory 'INSTALL.txt') -Value $installText -Encoding utf8NoBOM
+    Set-Content -LiteralPath (Join-Path $stagingDirectory 'INSTALL.txt') -Value $installText -Encoding UTF8
 
     $manifest = [ordered]@{
         name = 'obs-status-indicators'
@@ -180,7 +180,7 @@ The plugin is a native Windows x64 OBS module and requires a compatible OBS inst
         commit = (Invoke-GitText @('rev-parse', 'HEAD'))
         signed = $Sign.IsPresent
     }
-    $manifest | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $stagingDirectory 'release-manifest.json') -Encoding utf8NoBOM
+    $manifest | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $stagingDirectory 'release-manifest.json') -Encoding UTF8
 
     if (Test-Path -LiteralPath $artifact) {
         Remove-Item -LiteralPath $artifact -Force
