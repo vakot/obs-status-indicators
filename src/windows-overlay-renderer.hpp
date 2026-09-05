@@ -1,6 +1,7 @@
 #pragma once
 
 #include "indicator-controller.hpp"
+#include "overlay-settings.hpp"
 
 #include <windows.h>
 
@@ -20,10 +21,10 @@ public:
 	bool start();
 	void stop();
 	void update_layout(const IndicatorLayout &layout);
+	void update_settings(const OverlaySettings &settings);
 
 private:
 	static constexpr int kIndicatorSize = 48;
-	static constexpr int kIndicatorGap = 8;
 	static constexpr UINT kUpdateLayoutMessage = WM_APP + 1;
 	static constexpr UINT kReassertTopmostMessage = WM_APP + 2;
 
@@ -36,7 +37,7 @@ private:
 	void destroy_window();
 	bool install_z_order_hooks();
 	void uninstall_z_order_hooks();
-	bool render_layout(const IndicatorLayout &layout);
+	bool render_layout(const IndicatorLayout &layout, const OverlaySettings &settings);
 	void apply_pending_layout();
 	void request_topmost_reassertion();
 	void reassert_topmost();
@@ -50,6 +51,7 @@ private:
 	DWORD thread_id_ = 0;
 	HWND window_ = nullptr;
 	IndicatorLayout pending_layout_;
+	OverlaySettings pending_settings_;
 	HWINEVENTHOOK foreground_event_hook_ = nullptr;
 	HWINEVENTHOOK object_event_hook_ = nullptr;
 	std::atomic_bool topmost_reassertion_pending_ = false;

@@ -81,7 +81,26 @@ Get-Content .\obs-dev\config\obs-studio\plugin_config\obs-websocket\config.json
 
 It should report `server_enabled: false`. For an API-driven experiment, stop OBS first, back up that JSON, set `server_enabled` to `true` and `auth_required` to `false`, run the experiment, stop OBS, and restore the exact backup before the next test.
 
-## 6. State and indicator checks
+## 6. Settings dialog and persistence checks
+
+Open `Tools > OBS Status Indicators Settings` in the standalone OBS window. The dialog is modeless and exposes:
+
+- `Origin`: top-left, top-right, bottom-left, or bottom-right of the primary display;
+- `Orientation`: vertical or horizontal;
+- `Offset`: equal pixel distance from the selected corner's two edges;
+- `Gap`: transparent pixel distance between 48x48 indicator tiles;
+- `Background color`: tile fill, including alpha;
+- `Icon color`: Lucide stroke color, including alpha.
+
+Use `Apply` and verify the overlay moves or repaints immediately. Use `Cancel` after changing a control and verify that unsaved values are discarded. The persisted file is:
+
+```powershell
+Get-Content .\obs-dev\config\obs-studio\plugin_config\obs-status-indicators\settings.json
+```
+
+The JSON uses `origin`, `orientation`, `offset`, `gap`, `background_color`, and `icon_color`. Color integers use Qt's `0xAARRGGBB` representation. Stop OBS before editing this file directly, then restart the single fixture instance to test load-time persistence and malformed-value fallback.
+
+## 7. State and indicator checks
 
 Perform these one at a time in the running standalone instance and correlate the visible overlay with the newest log snapshots:
 
@@ -92,7 +111,7 @@ The overlay is anchored to the primary display's top-left origin `(0, 0)`. Each 
 3. Toggle the USB microphone mute control in the Audio Mixer. Expect `MIC` to remain present and carry the muted presentation; unmute and verify the red muted presentation clears.
 4. Switch between `Gameplay Test` and `Camera Test`. The unavailable camera must not remove the other state indicators or crash the plugin.
 
-## 7. Capture exclusion experiment
+## 8. Capture exclusion experiment
 
 For Display Capture, stay on `Gameplay Test`, make sure the overlay is showing, and create both a desktop still and a short recording. Inspect artifacts, not only API return values:
 
@@ -118,7 +137,7 @@ The expected result is desktop/game content without the overlay marker. For Wind
 
 Also record the cases that are not available on the fixture: normal/maximized/borderless/exclusive fullscreen, monitor changes, and coexistence with Discord/Steam/NVIDIA overlays. Do not mark them passed without an actual captured frame.
 
-## 8. Topmost ordering check
+## 9. Topmost ordering check
 
 With the overlay visible, open a topmost utility such as Start11's custom control panel or another always-on-top test window. Interact with that panel repeatedly, then verify that the OBS indicator remains above it without changing OBS recording or Replay Buffer state. The renderer listens for foreground and top-level window show/hide/reorder events and reasserts `HWND_TOPMOST` on the overlay UI thread; it does not use a periodic timer. Confirm the startup log contains:
 
@@ -128,7 +147,7 @@ With the overlay visible, open a topmost utility such as Start11's custom contro
 
 If the third-party utility still wins z-order, record its windowing mode and whether it uses a compositor or exclusive-fullscreen path; Windows does not expose an absolute immutable “highest topmost” level.
 
-## 9. Teardown and final assertion
+## 10. Teardown and final assertion
 
 Close OBS gracefully after each experiment. If a process remains, stop that exact process before launching anything else. At the end:
 
