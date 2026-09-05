@@ -26,12 +26,23 @@ int main()
 	assert(layout.entries.size() == 1);
 	assert_kind(layout, 0, IndicatorKind::Recording);
 
-	state.recordingPaused = true;
+	state.recording = false;
+	state.replayBuffer = true;
 	layout = IndicatorController::build_layout(state);
 	assert(layout.entries.size() == 1);
-	assert_kind(layout, 0, IndicatorKind::Paused);
+	assert_kind(layout, 0, IndicatorKind::ReplayBuffer);
 
-	state.replayBuffer = true;
+	state.recording = true;
+	layout = IndicatorController::build_layout(state);
+	assert(layout.entries.size() == 1);
+	assert_kind(layout, 0, IndicatorKind::RecordingReplay);
+
+	state.recordingPaused = true;
+	layout = IndicatorController::build_layout(state);
+	assert(layout.entries.size() == 2);
+	assert_kind(layout, 0, IndicatorKind::Paused);
+	assert_kind(layout, 1, IndicatorKind::ReplayBuffer);
+
 	state.microphoneAvailable = true;
 	state.saving = true;
 	layout = IndicatorController::build_layout(state);

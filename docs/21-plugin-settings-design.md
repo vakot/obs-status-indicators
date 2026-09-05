@@ -8,16 +8,18 @@ The plugin stores one JSON object in `settings.json`:
 |---|---|---|---|
 | `origin` | string | `top-left` | One of `top-left`, `top-right`, `bottom-left`, `bottom-right`; the primary display corner used as the anchor. |
 | `orientation` | string | `vertical` | `vertical` stacks indicators downward/upward from the selected corner; `horizontal` stacks left/right from the selected corner. |
-| `offset` | integer | `0` | Equal distance in pixels from both display edges forming the selected corner. |
-| `gap` | integer | `8` | Pixel gap between adjacent indicator tiles. |
-| `background_color` | unsigned 32-bit RGBA | black at 50% alpha | Tile background color including alpha. |
-| `icon_color` | unsigned 32-bit RGBA | white at 50% alpha | Lucide stroke color including alpha. |
+| `offset` | integer | `4` | Equal distance in pixels from both display edges forming the selected corner. |
+| `gap` | integer | `4` | Pixel gap between adjacent indicator tiles. |
+| `indicator_size` | integer | `48` | Width and height in pixels of each square indicator tile; valid range is `16..256`. |
+| `background_color` | unsigned 32-bit RGB | black | Tile background color. |
+| `icon_color` | unsigned 32-bit RGB | white | Lucide stroke color. |
+| `opacity` | integer | `65` | Shared opacity for the complete indicator tile, from `1` to `100` percent. |
 
-Colors use Qt's `QColor::rgba()` representation (`0xAARRGGBB`) and are saved as JSON integers. The renderer uses per-pixel alpha with `UpdateLayeredWindow`'s source alpha set to 255 so the configured background and icon alpha values are preserved independently.
+Colors use Qt's opaque `QColor::rgb()` representation (`0xFFRRGGBB`) and are saved as JSON integers. The renderer applies the single configured opacity through `UpdateLayeredWindow`'s source alpha, so the background and icon always fade together. Previously saved alpha bytes are ignored when loading colors.
 
 ## Defaults and validation
 
-Defaults preserve the current post-MVP appearance: top-left origin, vertical orientation, zero offset, 8px gap, black 50% background, and white 50% icon color.
+Defaults preserve the current post-MVP appearance: top-left origin, vertical orientation, 4px offset, 4px gap, 48px indicators, black background, white icon color, and 65% shared opacity.
 
 The loader must validate values from disk rather than trusting JSON:
 
@@ -25,19 +27,22 @@ The loader must validate values from disk rather than trusting JSON:
 - unknown orientation falls back to `vertical`;
 - offset is clamped to `0..4096`;
 - gap is clamped to `0..512`;
+- indicator size is clamped to `16..256`;
+- opacity is clamped to `1..100`;
 - missing or malformed color values fall back to their defaults.
 
 The dialog uses the same bounds and writes only normalized values.
 
 ## Dialog behavior
 
-The Tools menu contains `OBS Status Indicators Settings`. The dialog is modeless and parented to the OBS main window. It contains:
+The Tools menu contains `Status Indicators`. The dialog is modeless and parented to the OBS main window. Its controls are grouped into sections:
 
-- an origin combo box with four corner choices;
-- an orientation combo box with vertical/horizontal choices;
-- offset and gap spin boxes with pixel suffixes;
-- background and icon color buttons opening `QColorDialog` with alpha-channel support;
+- `Layout`: origin and orientation controls on one row;
+- `Spacing`: indicator size and gap spin boxes on one row, with offset below;
+- `Appearance`: solid background and icon color buttons on one row, followed by a shared opacity spin box with a percent suffix;
 - Apply, OK, and Cancel actions.
+
+Color buttons open `QColorDialog` without alpha-channel support.
 
 Apply saves the normalized snapshot and requests a renderer update immediately. OK applies and closes. Cancel discards unsaved edits.
 
@@ -59,4 +64,4 @@ The orientation determines whether the layout dimensions are `tile_count × tile
 1. Persist and normalize the settings model.
 2. Add the Qt Tools-menu dialog and localized labels.
 3. Pass settings snapshots to the renderer and apply layout/origin/color behavior.
-4. Verify persistence, live Apply behavior, all corner/orientation combinations, alpha, and clean unload.
+4. Verify persistence, live Apply behavior, all corner/orientation combinations, size-dependent padding, shared opacity, and clean unload.

@@ -83,14 +83,18 @@ It should report `server_enabled: false`. For an API-driven experiment, stop OBS
 
 ## 6. Settings dialog and persistence checks
 
-Open `Tools > OBS Status Indicators Settings` in the standalone OBS window. The dialog is modeless and exposes:
+Open `Tools > Status Indicators` in the standalone OBS window. The dialog is modeless and exposes:
 
 - `Origin`: top-left, top-right, bottom-left, or bottom-right of the primary display;
 - `Orientation`: vertical or horizontal;
 - `Offset`: equal pixel distance from the selected corner's two edges;
-- `Gap`: transparent pixel distance between 48x48 indicator tiles;
-- `Background color`: tile fill, including alpha;
-- `Icon color`: Lucide stroke color, including alpha.
+- `Gap`: transparent pixel distance between indicator tiles;
+- `Indicator size`: square tile width and height from 16px to 256px;
+- `Background color`: solid tile fill color;
+- `Icon color`: solid Lucide stroke color;
+- `Opacity`: shared complete-indicator opacity from 1% to 100%.
+
+The controls are grouped as `Layout` (Origin and Orientation side by side), `Spacing` (Indicator size and Gap side by side, with Offset below), and `Appearance` (Background color and Icon color side by side, with Opacity below them).
 
 Use `Apply` and verify the overlay moves or repaints immediately. Use `Cancel` after changing a control and verify that unsaved values are discarded. The persisted file is:
 
@@ -98,16 +102,16 @@ Use `Apply` and verify the overlay moves or repaints immediately. Use `Cancel` a
 Get-Content .\obs-dev\config\obs-studio\plugin_config\obs-status-indicators\settings.json
 ```
 
-The JSON uses `origin`, `orientation`, `offset`, `gap`, `background_color`, and `icon_color`. Color integers use Qt's `0xAARRGGBB` representation. Stop OBS before editing this file directly, then restart the single fixture instance to test load-time persistence and malformed-value fallback.
+The JSON uses `origin`, `orientation`, `offset`, `gap`, `indicator_size`, `background_color`, `icon_color`, and `opacity`. Color integers use opaque Qt `0xFFRRGGBB` representation; any alpha byte in an older file is ignored. Icon padding is calculated as `max(1, round(indicator_size / 6))`, producing the current 8px padding at the default 48px size. Stop OBS before editing this file directly, then restart the single fixture instance to test load-time persistence and malformed-value fallback.
 
 ## 7. State and indicator checks
 
 Perform these one at a time in the running standalone instance and correlate the visible overlay with the newest log snapshots:
 
-The overlay is anchored to the primary display's top-left origin `(0, 0)`. Each active state is a 48x48 black square whose complete tile, including its Lucide icon, is composited at 50% opacity with an 8-pixel icon inset; multiple states stack downward with an 8-pixel transparent gap. Recording, pause, Replay Buffer, microphone, and saving use distinct Lucide action glyphs, and a muted microphone uses the Lucide `mic-off` glyph.
+The overlay is anchored to the configured corner and spacing. Each active state is a square of the configured size whose complete tile, including its Lucide icon, is composited at the configured shared opacity (65% by default); icon padding scales with tile size and is 8px at the default 48px size. Multiple states use the configured orientation and gap. Recording-only uses `circle-dot`, replay-only uses `refresh-ccw`, and recording plus replay is combined into one indicator using `refresh-ccw-dot`. Paused recording uses `pause`; microphone and saving retain their action glyphs, and a muted microphone uses `mic-off`.
 
-1. Start Recording. Expect `REC`; pause recording and expect `PAUSED` to replace `REC`; resume and stop.
-2. Start Replay Buffer. Expect `REPLAY`; use `Save Replay Buffer`; expect a bounded `SAVING` state after the save-completion event, then its expiry; stop Replay Buffer.
+1. Start Recording. Expect the `circle-dot` indicator; pause recording and expect `PAUSED` to replace it; resume and stop.
+2. Start Replay Buffer. Expect the `refresh-ccw` indicator. Start Recording while Replay Buffer remains active and verify the two states collapse into one `refresh-ccw-dot` indicator. Stop Recording and verify the replay-only icon returns; use `Save Replay Buffer`, expect a bounded `SAVING` state after the save-completion event, then its expiry; stop Replay Buffer.
 3. Toggle the USB microphone mute control in the Audio Mixer. Expect `MIC` to remain present and carry the muted presentation; unmute and verify the red muted presentation clears.
 4. Switch between `Gameplay Test` and `Camera Test`. The unavailable camera must not remove the other state indicators or crash the plugin.
 
