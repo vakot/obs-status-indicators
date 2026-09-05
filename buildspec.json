@@ -38,7 +38,7 @@
     },
     "name": "obs-status-indicators",
     "displayName": "OBS Status Indicators",
-    "version": "0.1.0",
+    "version": "0.0.1",
     "author": "vakot",
     "website": "https://github.com/vakot/obs-status-indicators",
     "email": "vakotua@gmail.com"
