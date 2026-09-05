@@ -145,7 +145,8 @@ function New-ReleasePackage {
     New-Item -ItemType Directory -Path (Join-Path $stagingDirectory 'data\obs-plugins') -Force | Out-Null
 
     $binary = Join-Path $buildDirectory "$Configuration\obs-status-indicators.dll"
-    $data = Join-Path $repositoryRoot 'data\obs-plugins\obs-status-indicators'
+    $data = Join-Path $repositoryRoot 'data'
+    $dataDestination = Join-Path $stagingDirectory 'data\obs-plugins\obs-status-indicators'
     if (-not (Test-Path -LiteralPath $binary -PathType Leaf)) {
         throw "Built plugin DLL was not found: $binary"
     }
@@ -154,7 +155,8 @@ function New-ReleasePackage {
     }
 
     Copy-Item -LiteralPath $binary -Destination (Join-Path $stagingDirectory 'obs-plugins\64bit\obs-status-indicators.dll')
-    Copy-Item -LiteralPath $data -Destination (Join-Path $stagingDirectory 'data\obs-plugins') -Recurse
+    New-Item -ItemType Directory -Path $dataDestination -Force | Out-Null
+    Copy-Item -Path (Join-Path $data '*') -Destination $dataDestination -Recurse -Force
 
     $installText = @"
 OBS Status Indicators $tag
