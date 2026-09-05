@@ -8,7 +8,7 @@ This is the reproducible end-to-end flow for the supplied portable OBS installat
 Set-Location 'C:\Users\vakot\Documents\GitHub\obs-status-indicators'
 ```
 
-Keep OBS stopped while building and installing the plugin. The startup script below closes any existing `obs64` process, waits for graceful shutdown, force-stops only remaining OBS processes if necessary, verifies that no OBS process remains, and then starts the portable fixture with the `Sync_Replay_Dev` profile.
+Keep OBS stopped while building and installing the plugin. The startup script below closes any existing `obs64` process, waits for graceful shutdown, force-stops only remaining OBS processes if necessary, builds and installs the latest plugin into `obs-dev`, verifies that no OBS process remains, and then starts the portable fixture with the `Sync_Replay_Dev` profile.
 
 ## 2. Build, test, and install
 
@@ -40,10 +40,16 @@ npm run sync-icons
 
 The running plugin uses the Qt6Svg library shipped with the OBS fixture, so Node.js is not required at runtime.
 
-## 3. Start exactly one OBS process
+## 3. Update the plugin and start exactly one OBS process
 
 ```powershell
 & .\scripts\start.ps1
+```
+
+The script requires the existing `build_x64` CMake configuration. It builds the `RelWithDebInfo` plugin and installs it into `obs-dev` before starting OBS, so source changes are picked up by the next run. If the build directory does not exist yet, configure it once with:
+
+```powershell
+cmake --preset windows-x64
 ```
 
 If an unclean previous stop shows the `OBS Studio Crash Detected` window, close that window and wait for the normal `OBS Status Indicators` window before testing.
