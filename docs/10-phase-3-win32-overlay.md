@@ -14,7 +14,7 @@ All window creation, painting, positioning, and destruction happen on the overla
 
 ## Rendering and capture evidence
 
-The indicators are rendered into an opaque premultiplied-alpha-compatible 32-bit DIB using native GDI vector primitives and published with `UpdateLayeredWindow`. Recording, pause, Replay Buffer, microphone, and saving each have a distinct white glyph; muted microphone uses a red slash while retaining the black square. OBS 32.2.1 logged:
+The indicators are rendered into an opaque premultiplied-alpha-compatible 32-bit DIB using Lucide SVG assets through Qt6Svg and published with `UpdateLayeredWindow`. Recording, pause, Replay Buffer, microphone, and saving each have a distinct white glyph; muted microphone uses Lucide's `mic-off` glyph while retaining the black square. OBS 32.2.1 logged:
 
 - `capture exclusion enabled for overlay`.
 - `overlay window ready at primary-display bottom-left`.
