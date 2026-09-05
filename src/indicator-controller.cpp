@@ -7,10 +7,11 @@ IndicatorLayout IndicatorController::build_layout(const IndicatorState &state)
 
 	if (state.recordingPaused)
 		layout.entries.push_back({IndicatorKind::Paused});
+	else if (state.recording && state.replayBuffer)
+		layout.entries.push_back({IndicatorKind::RecordingReplay});
 	else if (state.recording)
 		layout.entries.push_back({IndicatorKind::Recording});
-
-	if (state.replayBuffer)
+	else if (state.replayBuffer)
 		layout.entries.push_back({IndicatorKind::ReplayBuffer});
 
 	if (state.microphoneAvailable)

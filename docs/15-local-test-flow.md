@@ -108,10 +108,10 @@ The JSON uses `origin`, `orientation`, `offset`, `gap`, `indicator_size`, `backg
 
 Perform these one at a time in the running standalone instance and correlate the visible overlay with the newest log snapshots:
 
-The overlay is anchored to the configured corner and spacing. Each active state is a square of the configured size whose complete tile, including its Lucide icon, is composited at the configured shared opacity (80% by default); icon padding scales with tile size and is 8px at the default 48px size. Multiple states use the configured orientation and gap. Recording, pause, Replay Buffer, microphone, and saving use distinct Lucide action glyphs, and a muted microphone uses the Lucide `mic-off` glyph.
+The overlay is anchored to the configured corner and spacing. Each active state is a square of the configured size whose complete tile, including its Lucide icon, is composited at the configured shared opacity (80% by default); icon padding scales with tile size and is 8px at the default 48px size. Multiple states use the configured orientation and gap. Recording-only uses `circle-dot`, replay-only uses `refresh-ccw`, and recording plus replay is combined into one indicator using `refresh-ccw-dot`. Paused recording uses `pause`; microphone and saving retain their action glyphs, and a muted microphone uses `mic-off`.
 
-1. Start Recording. Expect `REC`; pause recording and expect `PAUSED` to replace `REC`; resume and stop.
-2. Start Replay Buffer. Expect `REPLAY`; use `Save Replay Buffer`; expect a bounded `SAVING` state after the save-completion event, then its expiry; stop Replay Buffer.
+1. Start Recording. Expect the `circle-dot` indicator; pause recording and expect `PAUSED` to replace it; resume and stop.
+2. Start Replay Buffer. Expect the `refresh-ccw` indicator. Start Recording while Replay Buffer remains active and verify the two states collapse into one `refresh-ccw-dot` indicator. Stop Recording and verify the replay-only icon returns; use `Save Replay Buffer`, expect a bounded `SAVING` state after the save-completion event, then its expiry; stop Replay Buffer.
 3. Toggle the USB microphone mute control in the Audio Mixer. Expect `MIC` to remain present and carry the muted presentation; unmute and verify the red muted presentation clears.
 4. Switch between `Gameplay Test` and `Camera Test`. The unavailable camera must not remove the other state indicators or crash the plugin.
 

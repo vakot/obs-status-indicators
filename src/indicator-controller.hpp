@@ -7,6 +7,7 @@
 enum class IndicatorKind {
 	Paused,
 	Recording,
+	RecordingReplay,
 	ReplayBuffer,
 	Microphone,
 	Saving,

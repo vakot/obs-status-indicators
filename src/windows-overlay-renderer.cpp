@@ -30,8 +30,10 @@ const char *icon_file_for(const IndicatorEntry &entry)
 		return "icons/lucide/pause.svg";
 	case IndicatorKind::Recording:
 		return "icons/lucide/circle-dot.svg";
+	case IndicatorKind::RecordingReplay:
+		return "icons/lucide/refresh-ccw-dot.svg";
 	case IndicatorKind::ReplayBuffer:
-		return "icons/lucide/repeat-2.svg";
+		return "icons/lucide/refresh-ccw.svg";
 	case IndicatorKind::Microphone:
 		return entry.muted ? "icons/lucide/mic-off.svg" : "icons/lucide/mic.svg";
 	case IndicatorKind::Saving:

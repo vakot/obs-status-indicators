@@ -1,7 +1,7 @@
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-const icons = ['circle-dot', 'pause', 'repeat-2', 'mic', 'mic-off', 'save'];
+const icons = ['circle-dot', 'pause', 'refresh-ccw', 'refresh-ccw-dot', 'mic', 'mic-off', 'save'];
 const sourceDirectory = resolve('node_modules/lucide-static/icons');
 const targetDirectory = resolve('data/icons/lucide');
 
