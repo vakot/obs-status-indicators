@@ -6,7 +6,7 @@ This is the reproducible end-to-end flow for the supplied portable OBS installat
 
 ```powershell
 Set-Location 'C:\Users\vakot\Documents\GitHub\obs-status-indicators'
-& .\scripts\start-obs-dev.ps1
+& .\scripts\start.ps1
 ```
 
 The script closes any existing `obs64` process, waits for graceful shutdown, force-stops only remaining OBS processes if necessary, verifies that no OBS process remains, and then starts the portable fixture with the `Sync_Replay_Dev` profile. If an unclean previous stop shows the `OBS Studio Crash Detected` window, close that window and wait for the normal `OBS Status Indicators` window before testing.
