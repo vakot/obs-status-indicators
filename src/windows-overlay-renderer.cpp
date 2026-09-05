@@ -16,6 +16,7 @@
 namespace {
 constexpr wchar_t kWindowClassName[] = L"OBSStatusIndicatorsOverlay";
 std::atomic<WindowsOverlayRenderer *> event_hook_renderer = nullptr;
+constexpr int kIconPadding = 8;
 const char *icon_file_for(const IndicatorEntry &entry)
 {
 	switch (entry.kind) {
@@ -51,7 +52,9 @@ bool render_lucide_icon(QImage &tile, const IndicatorEntry &entry)
 	}
 
 	QPainter painter(&tile);
-	renderer.render(&painter, QRectF(8, 8, 48, 48));
+	renderer.render(&painter,
+		QRectF(kIconPadding, kIconPadding, tile.width() - 2 * kIconPadding,
+			tile.height() - 2 * kIconPadding));
 	return true;
 }
 }
