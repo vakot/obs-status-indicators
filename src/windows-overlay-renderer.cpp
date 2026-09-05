@@ -3,12 +3,14 @@
 #include <obs-module.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 
 #include <plugin-support.h>
 
 namespace {
 constexpr wchar_t kWindowClassName[] = L"OBSStatusIndicatorsOverlay";
+std::atomic<WindowsOverlayRenderer *> event_hook_renderer = nullptr;
 
 const wchar_t *label_for(IndicatorKind kind)
 {
@@ -100,6 +102,8 @@ void WindowsOverlayRenderer::run()
 	while (GetMessageW(&message, nullptr, 0, 0) > 0) {
 		if (message.message == kUpdateLayoutMessage)
 			apply_pending_layout();
+		else if (message.message == kReassertTopmostMessage)
+			reassert_topmost();
 		else
 			DispatchMessageW(&message);
 	}
@@ -143,6 +147,8 @@ bool WindowsOverlayRenderer::create_window()
 	} else {
 		obs_log(LOG_INFO, "capture exclusion enabled for overlay");
 	}
+	if (!install_z_order_hooks())
+		obs_log(LOG_WARNING, "topmost order recovery hooks unavailable; overlay remains best effort");
 
 	const int screen_width = GetSystemMetrics(SM_CXSCREEN);
 	const int screen_height = GetSystemMetrics(SM_CYSCREEN);
@@ -156,10 +162,49 @@ bool WindowsOverlayRenderer::create_window()
 
 void WindowsOverlayRenderer::destroy_window()
 {
+	uninstall_z_order_hooks();
 	if (window_)
 		DestroyWindow(window_);
 	window_ = nullptr;
 	UnregisterClassW(kWindowClassName, GetModuleHandleW(nullptr));
+}
+
+bool WindowsOverlayRenderer::install_z_order_hooks()
+{
+	WindowsOverlayRenderer *expected = nullptr;
+	if (!event_hook_renderer.compare_exchange_strong(expected, this))
+		return false;
+
+	constexpr DWORD hook_flags = WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS;
+	foreground_event_hook_ = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, nullptr,
+		&WindowsOverlayRenderer::win_event_proc, 0, 0, hook_flags);
+	object_event_hook_ = SetWinEventHook(EVENT_OBJECT_SHOW, EVENT_OBJECT_REORDER, nullptr,
+		&WindowsOverlayRenderer::win_event_proc, 0, 0, hook_flags);
+
+	if (!foreground_event_hook_ || !object_event_hook_) {
+		obs_log(LOG_WARNING, "topmost order recovery hook registration failed: %lu", GetLastError());
+		uninstall_z_order_hooks();
+		return false;
+	}
+
+	obs_log(LOG_INFO, "topmost order recovery hooks enabled");
+	return true;
+}
+
+void WindowsOverlayRenderer::uninstall_z_order_hooks()
+{
+	if (foreground_event_hook_) {
+		UnhookWinEvent(foreground_event_hook_);
+		foreground_event_hook_ = nullptr;
+	}
+	if (object_event_hook_) {
+		UnhookWinEvent(object_event_hook_);
+		object_event_hook_ = nullptr;
+	}
+
+	WindowsOverlayRenderer *expected = this;
+	event_hook_renderer.compare_exchange_strong(expected, nullptr);
+	topmost_reassertion_pending_.store(false, std::memory_order_release);
 }
 
 bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout)
@@ -263,6 +308,50 @@ void WindowsOverlayRenderer::apply_pending_layout()
 
 	if (!render_layout(layout))
 		obs_log(LOG_WARNING, "overlay layout update failed");
+}
+
+void WindowsOverlayRenderer::request_topmost_reassertion()
+{
+	DWORD thread_id = 0;
+	{
+		std::lock_guard<std::mutex> lock(mutex_);
+		if (!window_ || thread_id_ == 0)
+			return;
+		thread_id = thread_id_;
+	}
+
+	bool expected = false;
+	if (!topmost_reassertion_pending_.compare_exchange_strong(expected, true,
+		std::memory_order_acq_rel))
+		return;
+
+	if (!PostThreadMessageW(thread_id, kReassertTopmostMessage, 0, 0))
+		topmost_reassertion_pending_.store(false, std::memory_order_release);
+}
+
+void WindowsOverlayRenderer::reassert_topmost()
+{
+	topmost_reassertion_pending_.store(false, std::memory_order_release);
+	if (!window_)
+		return;
+
+	if (!SetWindowPos(window_, HWND_TOPMOST, 0, 0, 0, 0,
+		SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE))
+		obs_log(LOG_WARNING, "overlay topmost order recovery failed: %lu", GetLastError());
+}
+
+void CALLBACK WindowsOverlayRenderer::win_event_proc(HWINEVENTHOOK, DWORD event, HWND, LONG object_id, LONG,
+	DWORD, DWORD)
+{
+	if (event != EVENT_SYSTEM_FOREGROUND &&
+		(event != EVENT_OBJECT_SHOW && event != EVENT_OBJECT_HIDE && event != EVENT_OBJECT_REORDER))
+		return;
+	if (event != EVENT_SYSTEM_FOREGROUND && object_id != OBJID_WINDOW)
+		return;
+
+	WindowsOverlayRenderer *renderer = event_hook_renderer.load(std::memory_order_acquire);
+	if (renderer)
+		renderer->request_topmost_reassertion();
 }
 
 void WindowsOverlayRenderer::signal_initialized(bool success)
