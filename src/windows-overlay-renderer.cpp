@@ -107,8 +107,9 @@ void WindowsOverlayRenderer::stop()
 		std::lock_guard<std::mutex> lock(mutex_);
 		if (!thread_.joinable())
 			return;
-		if (thread_id_ != 0)
-			PostThreadMessageW(thread_id_, WM_QUIT, 0, 0);
+		if (thread_id_ != 0 && !PostThreadMessageW(thread_id_, WM_QUIT, 0, 0)) {
+			obs_log(LOG_WARNING, "overlay thread shutdown message failed: %lu", GetLastError());
+		}
 	}
 
 	thread_.join();
@@ -121,28 +122,28 @@ void WindowsOverlayRenderer::stop()
 
 void WindowsOverlayRenderer::update_layout(const IndicatorLayout &layout)
 {
-	DWORD thread_id = 0;
+	HWND window = nullptr;
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
 		pending_layout_ = layout;
-		thread_id = thread_id_;
+		window = window_;
 	}
 
-	if (thread_id != 0)
-		PostThreadMessageW(thread_id, kUpdateLayoutMessage, 0, 0);
+	if (window && !PostMessageW(window, kUpdateLayoutMessage, 0, 0))
+		obs_log(LOG_WARNING, "overlay layout update message failed: %lu", GetLastError());
 }
 
 void WindowsOverlayRenderer::update_settings(const OverlaySettings &settings)
 {
-	DWORD thread_id = 0;
+	HWND window = nullptr;
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
 		pending_settings_ = normalize_overlay_settings(settings);
-		thread_id = thread_id_;
+		window = window_;
 	}
 
-	if (thread_id != 0)
-		PostThreadMessageW(thread_id, kUpdateLayoutMessage, 0, 0);
+	if (window && !PostMessageW(window, kUpdateLayoutMessage, 0, 0))
+		obs_log(LOG_WARNING, "overlay settings update message failed: %lu", GetLastError());
 }
 
 void WindowsOverlayRenderer::run()
@@ -370,12 +371,12 @@ void WindowsOverlayRenderer::apply_pending_layout()
 
 void WindowsOverlayRenderer::request_topmost_reassertion()
 {
-	DWORD thread_id = 0;
+	HWND window = nullptr;
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
-		if (!window_ || thread_id_ == 0)
+		if (!window_)
 			return;
-		thread_id = thread_id_;
+		window = window_;
 	}
 
 	bool expected = false;
@@ -383,8 +384,10 @@ void WindowsOverlayRenderer::request_topmost_reassertion()
 		std::memory_order_acq_rel))
 		return;
 
-	if (!PostThreadMessageW(thread_id, kReassertTopmostMessage, 0, 0))
+	if (!PostMessageW(window, kReassertTopmostMessage, 0, 0)) {
+		obs_log(LOG_WARNING, "overlay topmost update message failed: %lu", GetLastError());
 		topmost_reassertion_pending_.store(false, std::memory_order_release);
+	}
 }
 
 void WindowsOverlayRenderer::reassert_topmost()
