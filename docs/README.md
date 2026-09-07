@@ -62,3 +62,5 @@ The complete reproducible operator flow is recorded in [15-local-test-flow.md](1
 The microphone audio activity research, policy, implementation, and limitations are recorded in [16-microphone-activity-investigation.md](16-microphone-activity-investigation.md).
 
 The local release, signing decision, and installation/update flow are recorded in [17-release-and-update-flow.md](17-release-and-update-flow.md).
+
+The startup overlay visibility investigation and fix are recorded in [22-startup-overlay-visibility.md](22-startup-overlay-visibility.md).
