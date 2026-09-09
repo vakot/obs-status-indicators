@@ -53,5 +53,8 @@ private:
 	OverlaySettings pending_settings_;
 	HWINEVENTHOOK foreground_event_hook_ = nullptr;
 	HWINEVENTHOOK object_event_hook_ = nullptr;
+	UINT shell_hook_message_ = 0;
+	bool shell_hook_registered_ = false;
+	bool layout_visible_ = false;
 	std::atomic_bool topmost_reassertion_pending_ = false;
 };
