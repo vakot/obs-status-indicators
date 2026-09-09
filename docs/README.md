@@ -64,3 +64,5 @@ The microphone audio activity research, policy, implementation, and limitations 
 The local release, signing decision, and installation/update flow are recorded in [17-release-and-update-flow.md](17-release-and-update-flow.md).
 
 The startup overlay visibility investigation and fix are recorded in [22-startup-overlay-visibility.md](22-startup-overlay-visibility.md).
+
+The overlay z-order, show-desktop, focus, and input behavior investigation is recorded in [23-overlay-window-behavior.md](23-overlay-window-behavior.md).

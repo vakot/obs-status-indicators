@@ -188,7 +188,8 @@ bool WindowsOverlayRenderer::create_window()
 		return false;
 	}
 
-	window_ = CreateWindowExW(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
+	window_ = CreateWindowExW(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW |
+			WS_EX_TOPMOST,
 		kWindowClassName, L"OBS Status Indicators", WS_POPUP, 0, 0, kDefaultIndicatorSize,
 		kDefaultIndicatorSize, nullptr,
 		nullptr, instance, this);
@@ -214,6 +215,15 @@ bool WindowsOverlayRenderer::create_window()
 	}
 	if (!install_z_order_hooks())
 		obs_log(LOG_WARNING, "topmost order recovery hooks unavailable; overlay remains best effort");
+
+	shell_hook_message_ = RegisterWindowMessageW(L"SHELLHOOK");
+	if (!shell_hook_message_ || !RegisterShellHookWindow(window_)) {
+		obs_log(LOG_WARNING, "shell order recovery hook unavailable: %lu", GetLastError());
+		shell_hook_message_ = 0;
+	} else {
+		shell_hook_registered_ = true;
+		obs_log(LOG_INFO, "shell order recovery hook enabled");
+	}
 
 	SetWindowPos(window_, HWND_TOPMOST, 0, 0, 0, 0,
 		SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
@@ -254,6 +264,12 @@ bool WindowsOverlayRenderer::install_z_order_hooks()
 
 void WindowsOverlayRenderer::uninstall_z_order_hooks()
 {
+	if (shell_hook_registered_) {
+		DeregisterShellHookWindow(window_);
+		shell_hook_registered_ = false;
+	}
+	shell_hook_message_ = 0;
+
 	if (foreground_event_hook_) {
 		UnhookWinEvent(foreground_event_hook_);
 		foreground_event_hook_ = nullptr;
@@ -350,7 +366,11 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout, const 
 		return false;
 	}
 
-	SetWindowPos(window_, HWND_TOPMOST, destination.x, destination.y, width, height, SWP_NOACTIVATE);
+	layout_visible_ = entry_count > 0;
+	if (!SetWindowPos(window_, HWND_TOPMOST, destination.x, destination.y, width, height, SWP_NOACTIVATE)) {
+		obs_log(LOG_ERROR, "overlay position update failed: %lu", GetLastError());
+		return false;
+	}
 	ShowWindow(window_, entry_count > 0 ? SW_SHOWNOACTIVATE : SW_HIDE);
 	return true;
 }
@@ -396,8 +416,10 @@ void WindowsOverlayRenderer::reassert_topmost()
 	if (!window_)
 		return;
 
-	if (!SetWindowPos(window_, HWND_TOPMOST, 0, 0, 0, 0,
-		SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE))
+	UINT flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE;
+	if (layout_visible_)
+		flags |= SWP_SHOWWINDOW;
+	if (!SetWindowPos(window_, HWND_TOPMOST, 0, 0, 0, 0, flags))
 		obs_log(LOG_WARNING, "overlay topmost order recovery failed: %lu", GetLastError());
 }
 
@@ -431,15 +453,36 @@ LRESULT CALLBACK WindowsOverlayRenderer::window_proc(HWND window, UINT message, 
 		SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(create->lpCreateParams));
 	}
 
+	auto *renderer = reinterpret_cast<WindowsOverlayRenderer *>(
+		GetWindowLongPtrW(window, GWLP_USERDATA));
+	if (renderer && renderer->shell_hook_message_ != 0 && message == renderer->shell_hook_message_) {
+		renderer->request_topmost_reassertion();
+		return 0;
+	}
+
 	switch (message) {
+	case WM_WINDOWPOSCHANGING: {
+		if (renderer && renderer->layout_visible_) {
+			auto *position = reinterpret_cast<WINDOWPOS *>(lparam);
+			if (position) {
+				position->flags = (position->flags & ~SWP_HIDEWINDOW) | SWP_SHOWWINDOW;
+			}
+		}
+		return DefWindowProcW(window, message, wparam, lparam);
+	}
 	case WM_NCHITTEST:
 		return HTTRANSPARENT;
 	case WM_MOUSEACTIVATE:
 		return MA_NOACTIVATE;
+	case WM_SETFOCUS:
+		return 0;
+	case WM_ACTIVATE:
+		if (renderer && LOWORD(wparam) != WA_INACTIVE)
+			renderer->request_topmost_reassertion();
+		return 0;
 	case WM_ERASEBKGND:
 		return 1;
 	case WM_CLOSE:
-		DestroyWindow(window);
 		return 0;
 	case WM_DESTROY:
 		PostQuitMessage(0);
