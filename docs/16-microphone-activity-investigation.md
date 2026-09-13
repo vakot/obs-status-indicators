@@ -33,7 +33,7 @@ The volume-meter callback runs outside the plugin's normal state-publication pat
 
 Silence is not the same as mute. A user who is quiet, a microphone with a very low signal, a noisy threshold configuration, or a disconnected device can all produce the same muted-looking presentation. The threshold and timeout are fixed for this first implementation because the request calls for a status heuristic rather than additional settings.
 
-The implementation follows the microphone source selected by the existing provider: it prefers the WASAPI input source and otherwise uses the first audio source. It does not independently enumerate Windows capture devices or infer which source represents a human microphone.
+The implementation follows OBS's configured microphone input: it prefers the platform's stable input-capture source IDs (`pulse_input_capture`, PipeWire, ALSA, WASAPI, or CoreAudio) and uses the `Mic/Aux` source name only as a final fallback. It never selects an arbitrary first audio source, which prevents Desktop Audio from being treated as the microphone on Linux.
 
 ## Verification
 

@@ -25,7 +25,14 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
 if(OS_WINDOWS)
 	target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE user32 gdi32)
 elseif(OS_LINUX)
-	# Linux uses the Qt GUI backend supplied by OBS; no desktop-server API is required.
+	# The layer-shell protocol gives Wayland compositors the information needed
+	# for a non-interactive, always-visible overlay. Keep the Qt window fallback
+	# for systems without the protocol development tools.
+	find_package(PkgConfig QUIET)
+	if(PkgConfig_FOUND)
+		pkg_check_modules(WAYLAND_CLIENT QUIET IMPORTED_TARGET wayland-client)
+	endif()
+	find_program(WAYLAND_SCANNER wayland-scanner)
 else()
 	message(FATAL_ERROR "OBS Status Indicators has no renderer for ${CMAKE_HOST_SYSTEM_NAME}")
 endif()
@@ -54,6 +61,29 @@ if(OS_WINDOWS)
 	target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/windows-overlay-renderer.cpp)
 elseif(OS_LINUX)
 	target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/linux-overlay-renderer.cpp)
+	if(TARGET PkgConfig::WAYLAND_CLIENT AND WAYLAND_SCANNER)
+		set(LAYER_SHELL_PROTOCOL_XML
+			${CMAKE_CURRENT_SOURCE_DIR}/src/wlr-layer-shell-unstable-v1.xml)
+		set(LAYER_SHELL_PROTOCOL_HEADER
+			${CMAKE_CURRENT_BINARY_DIR}/wlr-layer-shell-unstable-v1-client-protocol.h)
+		set(LAYER_SHELL_PROTOCOL_CODE
+			${CMAKE_CURRENT_BINARY_DIR}/wlr-layer-shell-unstable-v1-protocol.c)
+		add_custom_command(
+			OUTPUT ${LAYER_SHELL_PROTOCOL_HEADER} ${LAYER_SHELL_PROTOCOL_CODE}
+			COMMAND ${WAYLAND_SCANNER} client-header ${LAYER_SHELL_PROTOCOL_XML}
+				${LAYER_SHELL_PROTOCOL_HEADER}
+			COMMAND ${WAYLAND_SCANNER} private-code ${LAYER_SHELL_PROTOCOL_XML}
+				${LAYER_SHELL_PROTOCOL_CODE}
+			DEPENDS ${LAYER_SHELL_PROTOCOL_XML}
+			VERBATIM)
+		target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+			${LAYER_SHELL_PROTOCOL_HEADER}
+			${LAYER_SHELL_PROTOCOL_CODE})
+		target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+		target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE PkgConfig::WAYLAND_CLIENT)
+		target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
+			OBS_STATUS_INDICATORS_HAVE_WAYLAND_LAYER_SHELL=1)
+	endif()
 endif()
 
 include(CTest)

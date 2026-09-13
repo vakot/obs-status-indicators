@@ -5,7 +5,7 @@
 
 #include <mutex>
 
-class LinuxOverlayWindow;
+class LinuxOverlaySurface;
 
 class LinuxOverlayRenderer {
 public:
@@ -25,5 +25,5 @@ private:
 	void stop_on_gui_thread();
 
 	std::mutex mutex_;
-	LinuxOverlayWindow *window_ = nullptr;
+	LinuxOverlaySurface *window_ = nullptr;
 };

@@ -4,18 +4,41 @@
 #include <obs-audio-controls.h>
 #include <callback/calldata.h>
 
+#include <array>
 #include <cstring>
 
 #include <plugin-support.h>
 
 namespace {
-constexpr char kMicrophoneSourceId[] = "wasapi_input_capture";
+constexpr char kMicrophoneSourceName[] = "Mic/Aux";
 constexpr float kSavingDisplaySeconds = 1.0f;
+
+constexpr std::array<const char *, 6> kMicrophoneSourceIds = {
+	"pulse_input_capture",
+	"pipewire_input_capture",
+	"pipewire_audio_input_capture",
+	"alsa_input_capture",
+	"wasapi_input_capture",
+	"coreaudio_input_capture",
+};
 
 struct microphone_search {
 	obs_source_t *preferred = nullptr;
+	int preferred_priority = 0;
 	obs_source_t *fallback = nullptr;
 };
+
+int microphone_source_priority(obs_source_t *source)
+{
+	const char *id = obs_source_get_id(source);
+	for (size_t index = 0; index < kMicrophoneSourceIds.size(); ++index) {
+		if (std::strcmp(id, kMicrophoneSourceIds[index]) == 0)
+			return static_cast<int>(kMicrophoneSourceIds.size() - index) + 1;
+	}
+
+	const char *name = obs_source_get_name(source);
+	return name && std::strcmp(name, kMicrophoneSourceName) == 0 ? 1 : 0;
+}
 
 bool find_microphone(void *data, obs_source_t *source)
 {
@@ -25,12 +48,15 @@ bool find_microphone(void *data, obs_source_t *source)
 	if ((obs_source_get_output_flags(source) & OBS_SOURCE_AUDIO) == 0)
 		return true;
 
-	if (!static_cast<microphone_search *>(data)->fallback)
-		static_cast<microphone_search *>(data)->fallback = obs_source_get_ref(source);
-
-	if (std::strcmp(obs_source_get_id(source), kMicrophoneSourceId) == 0) {
-		static_cast<microphone_search *>(data)->preferred = obs_source_get_ref(source);
-		return false;
+	auto *search = static_cast<microphone_search *>(data);
+	const int priority = microphone_source_priority(source);
+	if (priority == 1 && !search->fallback)
+		search->fallback = obs_source_get_ref(source);
+	if (priority > 1 && priority > search->preferred_priority) {
+		if (search->preferred)
+			obs_source_release(search->preferred);
+		search->preferred = obs_source_get_ref(source);
+		search->preferred_priority = priority;
 	}
 
 	return true;
@@ -207,7 +233,8 @@ void ObsStateProvider::resolve_microphone()
 	for (const char *signal : {"destroy", "remove"})
 		signal_handler_connect(signals, signal, microphone_lifetime_signal, this);
 	set_microphone_state(obs_source_enabled(microphone_), obs_source_muted(microphone_));
-	obs_log(LOG_INFO, "microphone source resolved by stable source type");
+	obs_log(LOG_INFO, "microphone source resolved: id='%s', name='%s'", obs_source_get_id(microphone_),
+		obs_source_get_name(microphone_));
 }
 
 void ObsStateProvider::resolve_replay_output()
