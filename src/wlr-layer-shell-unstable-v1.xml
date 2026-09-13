@@ -40,6 +40,7 @@
       <arg name="keyboard_interactivity" type="uint"/>
     </request>
     <request name="get_popup">
+      <!-- The request is retained for the protocol's wire ordering; popups are unused. -->
       <arg name="popup" type="object" interface="xdg_popup"/>
     </request>
     <request name="ack_configure">
@@ -58,5 +59,10 @@
     <request name="set_exclusive_edge" since="5">
       <arg name="edge" type="uint"/>
     </request>
+  </interface>
+
+  <!-- Type declaration needed for the unused get_popup request's wire signature. -->
+  <interface name="xdg_popup" version="1">
+    <request name="destroy" type="destructor"/>
   </interface>
 </protocol>
