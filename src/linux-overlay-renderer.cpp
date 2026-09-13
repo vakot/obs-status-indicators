@@ -38,7 +38,8 @@ public:
 			Qt::WindowDoesNotAcceptFocus | Qt::WindowTransparentForInput);
 		setWindowTitle(QStringLiteral("OBS Status Indicators"));
 
-		connect(QGuiApplication::instance(), &QGuiApplication::primaryScreenChanged, this,
+		QGuiApplication *application = qobject_cast<QGuiApplication *>(QCoreApplication::instance());
+		connect(application, &QGuiApplication::primaryScreenChanged, this,
 			[this](QScreen *screen) {
 				connect_screen(screen);
 				render();
