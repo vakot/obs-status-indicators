@@ -21,7 +21,14 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE src)
 
 find_package(libobs REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE user32 gdi32)
+
+if(OS_WINDOWS)
+	target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE user32 gdi32)
+elseif(OS_LINUX)
+	# Linux uses the Qt GUI backend supplied by OBS; no desktop-server API is required.
+else()
+	message(FATAL_ERROR "OBS Status Indicators has no renderer for ${CMAKE_HOST_SYSTEM_NAME}")
+endif()
 
 if(ENABLE_FRONTEND_API)
   find_package(obs-frontend-api REQUIRED)
@@ -41,8 +48,13 @@ target_sources(
     src/overlay-settings.cpp
     src/overlay-settings-dialog.cpp
     src/plugin-main.cpp
-    src/windows-overlay-renderer.cpp
 )
+
+if(OS_WINDOWS)
+	target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/windows-overlay-renderer.cpp)
+elseif(OS_LINUX)
+	target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/linux-overlay-renderer.cpp)
+endif()
 
 include(CTest)
 if(BUILD_TESTING)

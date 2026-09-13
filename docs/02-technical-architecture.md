@@ -11,12 +11,12 @@ OBS frontend callbacks / source signals / output signals
                          ↓
                 IndicatorController
                          ↓ copied snapshot
-                 WindowsOverlayRenderer
+                 OverlayRenderer
                          ↓
-              one complete Win32 layout update
+             one complete platform update
 ```
 
-The renderer must not query OBS. The provider must not know Win32 details. The controller owns presentation precedence and the complete visible set.
+The renderer must not query OBS. The provider must not know platform windowing details. The controller owns presentation precedence and the complete visible set. Windows uses a dedicated Win32 UI thread; Linux uses the OBS Qt GUI thread and queued Qt updates.
 
 ## OBS API mapping
 
@@ -77,13 +77,13 @@ For `SAVING`, the first supported path should be Replay Buffer save: request/sav
 5. Publish an empty/close command and join the renderer thread.
 6. Release OBS references and destroy synchronization objects.
 
-No OBS callback may call Win32 window operations directly unless the implementation proves that callback is running on the renderer thread. The safe default is to update state and enqueue a copied snapshot.
+No OBS callback may call native window operations directly unless the implementation proves that callback is running on the renderer's owning UI thread. The safe default is to update state and enqueue a copied snapshot.
 
 ## Reference and thread ownership
 
 - `ObsStateProvider` owns OBS references and signal registrations.
 - `IndicatorController` owns the last coherent state and desired entries.
-- `WindowsOverlayRenderer` owns `HWND`, GDI/DIB resources, the UI thread, and its message loop.
+- The platform renderer owns its native window, image surface, and UI-thread lifecycle. `WindowsOverlayRenderer` owns `HWND`, GDI/DIB resources, and its message loop; `LinuxOverlayRenderer` owns its Qt widget and compositor-facing window hints.
 - The producer-to-renderer boundary carries values, not raw OBS pointers.
 - Shutdown first prevents new work, then removes registrations, then joins the UI thread.
 

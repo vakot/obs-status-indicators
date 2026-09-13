@@ -11,13 +11,13 @@
 #include <overlay-settings-dialog.hpp>
 #include <overlay-settings.hpp>
 #include <plugin-support.h>
-#include <windows-overlay-renderer.hpp>
+#include <overlay-renderer.hpp>
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
 static ObsStateProvider *state_provider = nullptr;
-static WindowsOverlayRenderer *overlay_renderer = nullptr;
+static OverlayRenderer *overlay_renderer = nullptr;
 static OverlaySettings overlay_settings;
 static OverlaySettingsDialog *settings_dialog = nullptr;
 static QAction *settings_action = nullptr;
@@ -74,7 +74,7 @@ bool obs_module_load(void)
 		return false;
 	}
 
-	overlay_renderer = new (std::nothrow) WindowsOverlayRenderer();
+	overlay_renderer = new (std::nothrow) OverlayRenderer();
 	if (!overlay_renderer || !overlay_renderer->start()) {
 		obs_log(LOG_WARNING, "overlay startup failed; continuing without overlay");
 		delete overlay_renderer;

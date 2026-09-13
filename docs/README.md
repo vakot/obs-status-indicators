@@ -59,6 +59,8 @@ Phase 7 release-readiness evidence is recorded in [14-phase-7-stability-packagin
 
 The complete reproducible operator flow is recorded in [15-local-test-flow.md](15-local-test-flow.md).
 
+Linux support and its X11/Wayland compositor limitations are recorded in [24-linux-support.md](24-linux-support.md).
+
 The microphone audio activity research, policy, implementation, and limitations are recorded in [16-microphone-activity-investigation.md](16-microphone-activity-investigation.md).
 
 The local release, signing decision, and installation/update flow are recorded in [17-release-and-update-flow.md](17-release-and-update-flow.md).

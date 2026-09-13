@@ -4,7 +4,7 @@
 
 - Use `ObsStateProvider` for OBS-specific acquisition and references.
 - Use `IndicatorController` for precedence, normalization, transient state, and desired layout.
-- Use `WindowsOverlayRenderer` for HWND/thread/GDI/rendering operations only.
+- Use the platform renderer for native window and rendering operations only. Keep Win32 details in `WindowsOverlayRenderer` and Linux/Qt details in `LinuxOverlayRenderer`.
 - Name state fields after facts (`recordingPaused`, `microphoneMuted`) rather than visual labels.
 - Keep renderer inputs value-based; do not expose OBS pointers to the renderer.
 
@@ -20,15 +20,15 @@
 
 - Every `obs_*_get_*` reference is paired with the documented release call.
 - Every signal/callback registration has a matching removal on unload.
-- The renderer owns its HWND, DIB/font resources, timers, thread, and message loop.
+- The renderer owns its native window, image surface, timers, and platform UI lifecycle. The Windows renderer owns its HWND and message loop; the Linux renderer owns its Qt widget on the OBS GUI thread.
 - Teardown order is: stop accepting work → unregister callbacks/signals → cancel timers → close/join UI thread → release objects.
 - Use weak source references or re-resolution when a microphone source can be removed/replaced.
 
 ## Threading
 
-- Treat OBS callbacks as unsuitable for direct Win32 operations.
-- Publish copied state snapshots to the overlay thread.
-- Perform all HWND/layout/paint operations on the overlay thread.
+- Treat OBS callbacks as unsuitable for direct native window operations.
+- Publish copied state snapshots to the platform renderer.
+- Perform all native window/layout/paint operations on the renderer's owning UI thread.
 - Use one narrow synchronization mechanism; do not add a general task system.
 - Timers must be owned by the controller/renderer boundary, cancellable, and unable to target destroyed state.
 

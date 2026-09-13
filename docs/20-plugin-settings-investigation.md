@@ -36,9 +36,9 @@ Reference: [OBS module API](https://github.com/obsproject/obs-studio/blob/master
 
 ## Runtime ownership
 
-The dialog runs on OBS's Qt UI thread. It must not access the overlay `HWND` directly. Applying settings should copy an immutable settings snapshot into `WindowsOverlayRenderer`, which already owns a dedicated UI thread and private message queue.
+The dialog runs on OBS's Qt UI thread. It must not access the overlay's native window directly. Applying settings should copy an immutable settings snapshot into the platform renderer, which owns its UI lifecycle and applies updates on its owning UI thread.
 
-The renderer should combine the latest layout snapshot and settings snapshot in its existing update message. This keeps OBS callbacks and Qt controls away from Win32 window operations.
+The renderer should combine the latest layout snapshot and settings snapshot in its existing update mechanism. This keeps OBS callbacks and Qt controls away from native window operations.
 
 ## Scope boundary
 

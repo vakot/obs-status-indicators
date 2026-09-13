@@ -1,81 +1,18 @@
 #include "windows-overlay-renderer.hpp"
 
-#include <obs-module.h>
-
-#include <algorithm>
 #include <atomic>
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 
 #include <QColor>
-#include <QFile>
 #include <QImage>
-#include <QPainter>
-#include <QSvgRenderer>
 
-#include <plugin-support.h>
+#include <overlay-renderer-utils.hpp>
 
 namespace {
 constexpr wchar_t kWindowClassName[] = L"OBSStatusIndicatorsOverlay";
 std::atomic<WindowsOverlayRenderer *> event_hook_renderer = nullptr;
-
-int icon_padding_for_size(int indicator_size)
-{
-	return std::max(1, (indicator_size + 3) / 6);
-}
-const char *icon_file_for(const IndicatorEntry &entry)
-{
-	switch (entry.kind) {
-	case IndicatorKind::Paused:
-		return "icons/lucide/pause.svg";
-	case IndicatorKind::Recording:
-		return "icons/lucide/circle-dot.svg";
-	case IndicatorKind::RecordingReplay:
-		return "icons/lucide/refresh-ccw-dot.svg";
-	case IndicatorKind::ReplayBuffer:
-		return "icons/lucide/refresh-ccw.svg";
-	case IndicatorKind::Microphone:
-		return entry.muted ? "icons/lucide/mic-off.svg" : "icons/lucide/mic.svg";
-	case IndicatorKind::Saving:
-		return "icons/lucide/save.svg";
-	}
-	return nullptr;
-}
-
-bool render_lucide_icon(QImage &tile, const IndicatorEntry &entry, std::uint32_t icon_color)
-{
-	const char *relative_path = icon_file_for(entry);
-	char *icon_path = obs_module_file(relative_path);
-	if (!icon_path) {
-		obs_log(LOG_WARNING, "indicator icon path unavailable: %s", relative_path);
-		return false;
-	}
-
-	const QString path = QString::fromUtf8(icon_path);
-	bfree(icon_path);
-	QFile icon_file(path);
-	if (!icon_file.open(QIODevice::ReadOnly)) {
-		obs_log(LOG_WARNING, "indicator icon open failed: %s", relative_path);
-		return false;
-	}
-
-	QByteArray svg = icon_file.readAll();
-	const QColor color = QColor::fromRgb(icon_color);
-	const QByteArray stroke = QByteArray("stroke=\"") + color.name(QColor::HexRgb).toUtf8() + "\"";
-	svg.replace("stroke=\"#ffffff\"", stroke);
-	QSvgRenderer renderer(svg);
-	if (!renderer.isValid()) {
-		obs_log(LOG_WARNING, "indicator icon load failed: %s", relative_path);
-		return false;
-	}
-
-	const int icon_padding = icon_padding_for_size(tile.width());
-	QPainter painter(&tile);
-	renderer.render(&painter,
-		QRectF(icon_padding, icon_padding, tile.width() - 2 * icon_padding,
-			tile.height() - 2 * icon_padding));
-	return true;
-}
 }
 
 WindowsOverlayRenderer::~WindowsOverlayRenderer()
@@ -332,7 +269,7 @@ bool WindowsOverlayRenderer::render_layout(const IndicatorLayout &layout, const 
 		QImage tile(settings.indicator_size, settings.indicator_size,
 			QImage::Format_ARGB32_Premultiplied);
 		tile.fill(QColor::fromRgb(settings.background_color));
-		render_lucide_icon(tile, layout.entries[index], settings.icon_color);
+		overlay_renderer_detail::render_lucide_icon(tile, layout.entries[index], settings.icon_color);
 		for (int row = 0; row < tile.height(); ++row) {
 			std::memcpy(static_cast<std::uint8_t *>(pixels) +
 					(static_cast<size_t>(top + row) * width + left) * sizeof(std::uint32_t),
