@@ -58,21 +58,28 @@ int main()
 	assert_kind(layout, 2, IndicatorKind::Microphone);
 	assert_muted(layout, 2, true);
 
+	state.cameraAvailable = true;
+	layout = IndicatorController::build_layout(state);
+	assert_kind(layout, 3, IndicatorKind::Camera);
+
 	state.recordingPaused = false;
 	state.recording = false;
 	layout = IndicatorController::build_layout(state);
-	assert(layout.entries.size() == 3);
+	assert(layout.entries.size() == 4);
 	assert_kind(layout, 0, IndicatorKind::ReplayBuffer);
 	assert_kind(layout, 1, IndicatorKind::Microphone);
-	assert_kind(layout, 2, IndicatorKind::Saving);
+	assert_kind(layout, 2, IndicatorKind::Camera);
+	assert_kind(layout, 3, IndicatorKind::Saving);
 
 	state.replayBuffer = false;
 	layout = IndicatorController::build_layout(state);
-	assert(layout.entries.size() == 2);
+	assert(layout.entries.size() == 3);
 	assert_kind(layout, 0, IndicatorKind::Microphone);
-	assert_kind(layout, 1, IndicatorKind::Saving);
+	assert_kind(layout, 1, IndicatorKind::Camera);
+	assert_kind(layout, 2, IndicatorKind::Saving);
 
 	state.microphoneAvailable = false;
+	state.cameraAvailable = false;
 	layout = IndicatorController::build_layout(state);
 	assert(layout.entries.size() == 1);
 	assert_kind(layout, 0, IndicatorKind::Saving);

@@ -1,9 +1,13 @@
 #pragma once
 
 #include "indicator-state.hpp"
+#include "camera-activity.hpp"
 #include "microphone-activity.hpp"
 
+#include <cstdint>
 #include <mutex>
+#include <string>
+#include <unordered_map>
 
 #include <obs-frontend-api.h>
 
@@ -32,6 +36,7 @@ private:
 	static void replay_saved_signal(void *data, calldata_t *params);
 	static void saving_tick(void *data, float seconds);
 	static void microphone_activity_tick(void *data, float seconds);
+	static void camera_tick(void *data, float seconds);
 
 	void handle_frontend_event(enum obs_frontend_event event);
 	void reconcile(bool force_publish);
@@ -44,6 +49,8 @@ private:
 	void handle_microphone_lifetime_signal();
 	void handle_microphone_levels(const float input_peak[MAX_AUDIO_CHANNELS]);
 	void handle_microphone_activity_tick(float seconds);
+	void handle_camera_tick(float seconds);
+	bool scan_camera_sources();
 	void begin_saving();
 	void handle_saving_tick(float seconds);
 	IndicatorState read_state() const;
@@ -58,7 +65,11 @@ private:
 	obs_output_t *replay_output_ = nullptr;
 	bool saving_tick_registered_ = false;
 	bool microphone_activity_tick_registered_ = false;
+	bool camera_tick_registered_ = false;
 	float saving_remaining_seconds_ = 0.0f;
+	float camera_poll_elapsed_seconds_ = 0.0f;
 	MicrophoneActivity microphone_activity_;
+	CameraActivity camera_activity_;
+	std::unordered_map<std::string, uint64_t> camera_frame_timestamps_;
 	mutable std::mutex mutex_;
 };

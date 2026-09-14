@@ -4,13 +4,16 @@
 #include <obs-audio-controls.h>
 #include <callback/calldata.h>
 
+#include <algorithm>
 #include <cstring>
 
 #include <plugin-support.h>
 
 namespace {
 constexpr char kMicrophoneSourceId[] = "wasapi_input_capture";
+constexpr char kCameraSourceId[] = "dshow_input";
 constexpr float kSavingDisplaySeconds = 1.0f;
+constexpr float kCameraPollIntervalSeconds = 0.25f;
 
 struct microphone_search {
 	obs_source_t *preferred = nullptr;
@@ -35,6 +38,39 @@ bool find_microphone(void *data, obs_source_t *source)
 
 	return true;
 }
+
+struct camera_scan {
+	std::unordered_map<std::string, uint64_t> *frame_timestamps = nullptr;
+	bool frame_advanced = false;
+};
+
+bool find_camera_output(void *data, obs_source_t *source)
+{
+	if (!source)
+		return true;
+
+	const char *id = obs_source_get_id(source);
+	if (!id || std::strcmp(id, kCameraSourceId) != 0 || !obs_source_active(source))
+		return true;
+
+	const char *uuid = obs_source_get_uuid(source);
+	obs_source_frame *frame = obs_source_get_frame(source);
+	if (!frame)
+		return true;
+	if (!uuid) {
+		obs_source_release_frame(source, frame);
+		return true;
+	}
+
+	auto *scan = static_cast<camera_scan *>(data);
+	auto [timestamp, inserted] = scan->frame_timestamps->try_emplace(uuid, frame->timestamp);
+	if (inserted || timestamp->second != frame->timestamp) {
+		timestamp->second = frame->timestamp;
+		scan->frame_advanced = true;
+	}
+	obs_source_release_frame(source, frame);
+	return true;
+}
 }
 
 ObsStateProvider::ObsStateProvider(StateCallback callback, void *context)
@@ -51,6 +87,10 @@ ObsStateProvider::~ObsStateProvider()
 		obs_remove_tick_callback(saving_tick, this);
 		saving_tick_registered_ = false;
 	}
+	if (camera_tick_registered_) {
+		obs_remove_tick_callback(camera_tick, this);
+		camera_tick_registered_ = false;
+	}
 }
 
 bool ObsStateProvider::start()
@@ -60,6 +100,8 @@ bool ObsStateProvider::start()
 
 	obs_frontend_add_event_callback(frontend_event, this);
 	registered_ = true;
+	obs_add_tick_callback(camera_tick, this);
+	camera_tick_registered_ = true;
 	reconcile(true);
 	obs_log(LOG_INFO, "state provider started; initial state reconciled");
 	return true;
@@ -131,6 +173,7 @@ IndicatorState ObsStateProvider::read_state() const
 		state.microphoneAvailable = microphone_ != nullptr && obs_source_enabled(microphone_);
 		state.microphoneMuted = microphone_ != nullptr &&
 			(obs_source_muted(microphone_) || !microphone_activity_.active());
+		state.cameraAvailable = camera_activity_.active();
 		state.saving = state_.saving;
 	}
 	return state;
@@ -309,6 +352,48 @@ void ObsStateProvider::handle_microphone_activity_tick(float seconds)
 {
 	if (microphone_activity_.tick(seconds))
 		reconcile(false);
+}
+
+void ObsStateProvider::camera_tick(void *data, float seconds)
+{
+	static_cast<ObsStateProvider *>(data)->handle_camera_tick(seconds);
+}
+
+void ObsStateProvider::handle_camera_tick(float seconds)
+{
+	camera_poll_elapsed_seconds_ += std::max(0.0f, seconds);
+	if (camera_poll_elapsed_seconds_ < kCameraPollIntervalSeconds)
+		return;
+
+	const float poll_elapsed_seconds = camera_poll_elapsed_seconds_;
+	camera_poll_elapsed_seconds_ = 0.0f;
+	const bool frame_advanced = scan_camera_sources();
+
+	IndicatorState next;
+	bool changed = false;
+	{
+		std::lock_guard<std::mutex> lock(mutex_);
+		if (frame_advanced)
+			camera_activity_.observe();
+		changed = camera_activity_.tick(poll_elapsed_seconds);
+		if (changed) {
+			next = state_;
+			next.cameraAvailable = camera_activity_.active();
+		}
+	}
+
+	if (changed) {
+		obs_log(LOG_INFO, "camera output state changed: active=%d", next.cameraAvailable);
+		publish(next, false);
+	}
+}
+
+bool ObsStateProvider::scan_camera_sources()
+{
+	camera_scan scan;
+	scan.frame_timestamps = &camera_frame_timestamps_;
+	obs_enum_sources(find_camera_output, &scan);
+	return scan.frame_advanced;
 }
 
 void ObsStateProvider::handle_microphone_lifetime_signal()

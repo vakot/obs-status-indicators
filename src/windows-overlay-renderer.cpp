@@ -36,6 +36,8 @@ const char *icon_file_for(const IndicatorEntry &entry)
 		return "icons/lucide/refresh-ccw.svg";
 	case IndicatorKind::Microphone:
 		return entry.muted ? "icons/lucide/mic-off.svg" : "icons/lucide/mic.svg";
+	case IndicatorKind::Camera:
+		return "icons/lucide/camera.svg";
 	case IndicatorKind::Saving:
 		return "icons/lucide/save.svg";
 	}
