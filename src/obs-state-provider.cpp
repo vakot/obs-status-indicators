@@ -40,8 +40,7 @@ bool find_microphone(void *data, obs_source_t *source)
 }
 
 struct camera_scan {
-	std::unordered_map<std::string, uint64_t> *frame_timestamps = nullptr;
-	bool frame_advanced = false;
+	bool output_available = false;
 };
 
 bool find_camera_output(void *data, obs_source_t *source)
@@ -53,22 +52,10 @@ bool find_camera_output(void *data, obs_source_t *source)
 	if (!id || std::strcmp(id, kCameraSourceId) != 0 || !obs_source_active(source))
 		return true;
 
-	const char *uuid = obs_source_get_uuid(source);
-	obs_source_frame *frame = obs_source_get_frame(source);
-	if (!frame)
-		return true;
-	if (!uuid) {
-		obs_source_release_frame(source, frame);
-		return true;
-	}
-
 	auto *scan = static_cast<camera_scan *>(data);
-	auto [timestamp, inserted] = scan->frame_timestamps->try_emplace(uuid, frame->timestamp);
-	if (inserted || timestamp->second != frame->timestamp) {
-		timestamp->second = frame->timestamp;
-		scan->frame_advanced = true;
-	}
-	obs_source_release_frame(source, frame);
+	if (obs_source_get_width(source) != 0 && obs_source_get_height(source) != 0)
+		scan->output_available = true;
+
 	return true;
 }
 }
@@ -367,13 +354,13 @@ void ObsStateProvider::handle_camera_tick(float seconds)
 
 	const float poll_elapsed_seconds = camera_poll_elapsed_seconds_;
 	camera_poll_elapsed_seconds_ = 0.0f;
-	const bool frame_advanced = scan_camera_sources();
+	const bool output_available = scan_camera_sources();
 
 	IndicatorState next;
 	bool changed = false;
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
-		if (frame_advanced)
+		if (output_available)
 			camera_activity_.observe();
 		changed = camera_activity_.tick(poll_elapsed_seconds);
 		if (changed) {
@@ -391,9 +378,8 @@ void ObsStateProvider::handle_camera_tick(float seconds)
 bool ObsStateProvider::scan_camera_sources()
 {
 	camera_scan scan;
-	scan.frame_timestamps = &camera_frame_timestamps_;
 	obs_enum_sources(find_camera_output, &scan);
-	return scan.frame_advanced;
+	return scan.output_available;
 }
 
 void ObsStateProvider::handle_microphone_lifetime_signal()

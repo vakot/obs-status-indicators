@@ -4,10 +4,7 @@
 #include "camera-activity.hpp"
 #include "microphone-activity.hpp"
 
-#include <cstdint>
 #include <mutex>
-#include <string>
-#include <unordered_map>
 
 #include <obs-frontend-api.h>
 
@@ -70,6 +67,5 @@ private:
 	float camera_poll_elapsed_seconds_ = 0.0f;
 	MicrophoneActivity microphone_activity_;
 	CameraActivity camera_activity_;
-	std::unordered_map<std::string, uint64_t> camera_frame_timestamps_;
 	mutable std::mutex mutex_;
 };
