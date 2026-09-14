@@ -21,7 +21,7 @@ The overlay is a status display only. It does not provide controls and does not 
 
 ## Installation
 
-Download the latest Windows artifact from the [GitHub Releases page](https://github.com/vakot/obs-status-indicators/releases). For release `v0.0.3`, the package is `obs-status-indicators-windows-x64-v0.0.3.zip`.
+Download the latest Windows artifact from the [GitHub Releases page](https://github.com/vakot/obs-status-indicators/releases). For release `v0.0.4`, the package is `obs-status-indicators-windows-x64-v0.0.4.zip`.
 
 1. Close OBS completely.
 2. Extract the ZIP into the OBS installation directory.
@@ -32,7 +32,7 @@ To update an existing installation from a local artifact:
 
 ```powershell
 .\scripts\update.ps1 `
-  -Artifact '.\release\obs-status-indicators-windows-x64-v0.0.3.zip' `
+  -Artifact '.\release\obs-status-indicators-windows-x64-v0.0.4.zip' `
   -ObsRoot 'C:\Path\To\OBS'
 ```
 
