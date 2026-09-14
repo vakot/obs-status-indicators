@@ -121,6 +121,7 @@ The overlay is anchored to the configured corner and spacing. Each active state 
 3. Toggle the USB microphone mute control in the Audio Mixer. Expect `MIC` to remain present and carry the muted presentation; unmute and verify the red muted presentation clears.
 4. Leave the USB microphone silent for at least ten seconds. Expect the existing muted microphone presentation; make an audible test sound and verify the normal microphone presentation returns. A steady noise floor at or below `-60 dBFS` is treated as silence.
 5. Switch between `Gameplay Test` and `Camera Test`. The unavailable camera must not remove the other state indicators or crash the plugin.
+6. With a functioning `Video Capture Device`, verify the camera indicator appears only while the source is active and producing frames. Hide or deactivate the source and verify it disappears; stop or disconnect the camera and verify it disappears after the one-second output grace period. The supplied fixture has no functioning camera, so these positive-output checks require local camera hardware.
 
 ## 8. Capture exclusion experiment
 
