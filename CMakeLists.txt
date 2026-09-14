@@ -58,6 +58,10 @@ if(BUILD_TESTING)
 	add_executable(obs-status-indicators-microphone-activity-test tests/microphone-activity-test.cpp)
 	target_include_directories(obs-status-indicators-microphone-activity-test PRIVATE src)
 	add_test(NAME microphone-activity COMMAND obs-status-indicators-microphone-activity-test)
+
+	add_executable(obs-status-indicators-camera-activity-test tests/camera-activity-test.cpp)
+	target_include_directories(obs-status-indicators-camera-activity-test PRIVATE src)
+	add_test(NAME camera-activity COMMAND obs-status-indicators-camera-activity-test)
 endif()
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})

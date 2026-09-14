@@ -3,7 +3,7 @@
 IndicatorLayout IndicatorController::build_layout(const IndicatorState &state)
 {
 	IndicatorLayout layout;
-	layout.entries.reserve(5);
+	layout.entries.reserve(6);
 
 	if (state.recordingPaused)
 		layout.entries.push_back({IndicatorKind::Paused});
@@ -16,6 +16,9 @@ IndicatorLayout IndicatorController::build_layout(const IndicatorState &state)
 
 	if (state.microphoneAvailable)
 		layout.entries.push_back({IndicatorKind::Microphone, state.microphoneMuted});
+
+	if (state.cameraAvailable)
+		layout.entries.push_back({IndicatorKind::Camera});
 
 	if (state.saving)
 		layout.entries.push_back({IndicatorKind::Saving});

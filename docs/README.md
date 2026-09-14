@@ -14,7 +14,7 @@ small state provider and indicator controller
 native Win32 overlay owned by the plugin
 ```
 
-The design can provide recording, pause, Replay Buffer, microphone, and transient saving indicators without Python, an external process, IPC, scene items, or OBS output rendering.
+The design can provide recording, pause, Replay Buffer, microphone, camera, and transient saving indicators without Python, an external process, IPC, scene items, or OBS output rendering.
 
 The qualification is important: `SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE)` is a Windows capture hint/capability, not a universal DRM guarantee. It must be verified independently with Display Capture, Window Capture, and Game Capture. If the requirement is “never visible in every possible capture implementation or exclusive fullscreen mode,” that requirement is **NOT-POSSIBLE to guarantee** with the supported Windows API alone. If the requirement is the planned best-effort exclusion on supported Windows capture paths, the MVP remains **POSSIBLE**.
 
@@ -66,3 +66,5 @@ The local release, signing decision, and installation/update flow are recorded i
 The startup overlay visibility investigation and fix are recorded in [22-startup-overlay-visibility.md](22-startup-overlay-visibility.md).
 
 The overlay z-order, show-desktop, focus, and input behavior investigation is recorded in [23-overlay-window-behavior.md](23-overlay-window-behavior.md).
+
+The DirectShow camera source and output-frame detection are recorded in [24-camera-indicator.md](24-camera-indicator.md).
