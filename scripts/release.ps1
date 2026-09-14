@@ -227,6 +227,7 @@ try {
         Invoke-CheckedCommand 'gh' @('release', 'create', $tag, '--draft', '--generate-notes', '--title', $tag, '--verify-tag') "Creating draft GitHub release $tag"
     }
 
+    Invoke-CMakeCommand '--preset windows-x64' 'Configuring release build'
     Invoke-CMakeCommand "--build --preset windows-x64 --config $Configuration --parallel 8" 'Building release binaries'
     Invoke-CMakeCommand "--build build_x64 --config $Configuration --target RUN_TESTS" 'Running release tests'
 
