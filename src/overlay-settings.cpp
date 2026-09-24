@@ -116,7 +116,7 @@ bool save_overlay_settings(const OverlaySettings &input)
 		return false;
 	const int directory_result = os_mkdirs(directory);
 	bfree(directory);
-	if (directory_result != 0 && directory_result != MKDIR_SUCCESS)
+	if (directory_result == MKDIR_ERROR)
 		return false;
 
 	char *path = obs_module_config_path("settings.json");
