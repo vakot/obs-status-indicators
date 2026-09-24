@@ -21,7 +21,7 @@ The overlay is a status display only. It does not provide controls and does not 
 
 ## Installation
 
-Download the latest Windows artifact from the [GitHub Releases page](https://github.com/vakot/obs-status-indicators/releases). For release `v0.0.4`, the package is `obs-status-indicators-windows-x64-v0.0.4.zip`.
+Download the latest Windows artifact from the [GitHub Releases page](https://github.com/vakot/obs-status-indicators/releases). For release `v0.0.5`, the package is `obs-status-indicators-windows-x64-v0.0.5.zip`.
 
 1. Close OBS completely.
 2. Extract the ZIP into the OBS installation directory.
@@ -32,7 +32,7 @@ To update an existing installation from a local artifact:
 
 ```powershell
 .\scripts\update.ps1 `
-  -Artifact '.\release\obs-status-indicators-windows-x64-v0.0.4.zip' `
+  -Artifact '.\release\obs-status-indicators-windows-x64-v0.0.5.zip' `
   -ObsRoot 'C:\Path\To\OBS'
 ```
 
@@ -111,13 +111,13 @@ Releases are built locally; this repository does not use GitHub Actions. The rel
 Run it from a clean, up-to-date `master` checkout after updating `buildspec.json` to the intended version:
 
 ```powershell
-.\scripts\release.ps1 -Version 0.0.4
+.\scripts\release.ps1 -Version 0.0.5
 ```
 
 Use `-DryRun` with an unreleased version to build and package without creating a tag or GitHub release:
 
 ```powershell
-.\scripts\release.ps1 -Version 0.0.4 -DryRun
+.\scripts\release.ps1 -Version 0.0.5 -DryRun
 ```
 
 See [`docs/17-release-and-update-flow.md`](docs/17-release-and-update-flow.md) for the complete release and signing flow.
